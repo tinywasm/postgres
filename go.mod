@@ -7,4 +7,4 @@ require (
 	github.com/tinywasm/orm v0.3.2
 )
 
-require github.com/tinywasm/fmt v0.18.17
+require github.com/tinywasm/fmt v0.19.0
