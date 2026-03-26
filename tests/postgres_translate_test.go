@@ -1,6 +1,6 @@
 //go:build !wasm
 
-package postgres_test
+package tests
 
 import (
 	"testing"
@@ -41,7 +41,7 @@ func TestTranslate_Update_WithCondition(t *testing.T) {
 		Conditions: []orm.Condition{orm.Eq("id", "abc123")},
 	}
 
-	sql, args, err := postgres.ExportTranslate(q, m)
+	sql, args, err := postgres.Translate(q, m)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -84,7 +84,7 @@ func TestTranslate_Update_MultipleConditions(t *testing.T) {
 		},
 	}
 
-	sql, args, err := postgres.ExportTranslate(q, m)
+	sql, args, err := postgres.Translate(q, m)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

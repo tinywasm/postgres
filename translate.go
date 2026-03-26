@@ -193,6 +193,11 @@ func translate(q orm.Query, m fmt.Model) (string, []any, error) {
 	return sb.String(), args, nil
 }
 
+// Translate exposes translate for external testing packages.
+func Translate(q orm.Query, m fmt.Model) (string, []any, error) {
+	return translate(q, m)
+}
+
 func buildConditions(sb *fmt.Conv, conditions []orm.Condition, args *[]any, argIndex *int) error {
 	if len(conditions) == 0 {
 		return nil
