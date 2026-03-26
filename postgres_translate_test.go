@@ -3,12 +3,11 @@
 package postgre_test
 
 import (
-	"strings"
 	"testing"
 
+	postgre "github.com/cdvelop/postgre"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
-	postgre "github.com/cdvelop/postgre"
 )
 
 // testUserModel is a minimal test model with a TEXT primary key (string PK, like unixid).
@@ -48,12 +47,12 @@ func TestTranslate_Update_WithCondition(t *testing.T) {
 	}
 
 	// Must contain WHERE clause.
-	if !strings.Contains(sql, "WHERE") {
+	if !fmt.Contains(sql, "WHERE") {
 		t.Errorf("expected WHERE clause in UPDATE, got: %s", sql)
 	}
 
 	// Must use parameterized form ($N for postgres).
-	if !strings.Contains(sql, "$") {
+	if !fmt.Contains(sql, "$") {
 		t.Errorf("expected parameterized query, got: %s", sql)
 	}
 
@@ -89,10 +88,10 @@ func TestTranslate_Update_MultipleConditions(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if !strings.Contains(sql, "WHERE") {
+	if !fmt.Contains(sql, "WHERE") {
 		t.Errorf("expected WHERE in SQL, got: %s", sql)
 	}
-	if !strings.Contains(sql, "AND") {
+	if !fmt.Contains(sql, "AND") {
 		t.Errorf("expected AND between conditions, got: %s", sql)
 	}
 	_ = args
