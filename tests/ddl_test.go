@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cdvelop/postgre"
+	"github.com/tinywasm/postgres"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
 )
@@ -69,7 +69,7 @@ func TestDDL(t *testing.T) {
 		dsn = "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
 	}
 
-	dbORM, err := postgre.New(dsn)
+	dbORM, err := postgres.New(dsn)
 	if err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}

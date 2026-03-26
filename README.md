@@ -13,7 +13,7 @@ package main
 import (
 	"log"
 
-	"github.com/cdvelop/postgre"
+	"github.com/tinywasm/postgres"
 	"github.com/tinywasm/orm"
 )
 

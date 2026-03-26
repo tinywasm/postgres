@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/cdvelop/postgre"
+	"github.com/tinywasm/postgres"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
 )
@@ -89,7 +89,7 @@ func TestPostgresAdapter(t *testing.T) {
 	}
 
 	// Initialize Adapter via new return type
-	dbORM, err := postgre.New(dsn)
+	dbORM, err := postgres.New(dsn)
 	if err != nil {
 		t.Fatalf("Failed to create DB: %v", err)
 	}
@@ -217,13 +217,13 @@ func TestPostgresAdapter(t *testing.T) {
 
 	// 8. Test Errors
 	// Bad DSN
-	_, err = postgre.New("postgres://invalid:user@localhost:1234/bad?sslmode=disable")
+	_, err = postgres.New("postgres://invalid:user@localhost:1234/bad?sslmode=disable")
 	if err == nil {
 		t.Errorf("Expected error for bad DSN")
 	}
 
 	// Invalid driver DSN entirely
-	_, err = postgre.New("invalid_dsn_format\x00")
+	_, err = postgres.New("invalid_dsn_format\x00")
 	if err == nil {
 		t.Errorf("Expected error for invalid DSN format")
 	}
@@ -349,12 +349,12 @@ func TestPostgresAdapter(t *testing.T) {
 	// Cover Ping error and BeginTx error
 	// To cover Ping error we would need to provide a bad URL string or closed db,
 	// already tested bad DSN, but `sql.Open` doesn't always fail on bad DSN until Ping.
-	_, _ = postgre.New("postgres://invalid:password@localhost:5432/invalid?sslmode=disable")
+	_, _ = postgres.New("postgres://invalid:password@localhost:5432/invalid?sslmode=disable")
 
 	dbClosed, _ := sql.Open("postgres", dsn)
 	dbClosed.Close()
 
-	adapterClosed := postgre.AdapterForTest(dbClosed)
+	adapterClosed := postgres.AdapterForTest(dbClosed)
 	txBound, err := adapterClosed.BeginTx()
 	if err == nil {
 		t.Errorf("Expected BeginTx to fail on closed db")
