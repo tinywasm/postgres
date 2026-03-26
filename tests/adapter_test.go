@@ -17,7 +17,7 @@ type User struct {
 	Email string
 }
 
-func (u *User) TableName() string {
+func (u *User) ModelName() string {
 	return "users"
 }
 
@@ -34,7 +34,7 @@ func (u *User) Pointers() []any {
 }
 
 // Factory function
-func NewUser() orm.Model {
+func NewUser() fmt.Model {
 	return &User{}
 }
 
@@ -42,7 +42,7 @@ type MockModel struct {
 	schema []fmt.Field
 }
 
-func (m *MockModel) TableName() string { return "mock" }
+func (m *MockModel) ModelName() string { return "mock" }
 func (m *MockModel) Schema() []fmt.Field { return m.schema }
 func (m *MockModel) Pointers() []any { return nil }
 
@@ -115,8 +115,8 @@ func TestPostgresAdapter(t *testing.T) {
 		Limit(2).
 		Offset(1)
 
-	var users []orm.Model
-	err = qb.ReadAll(NewUser, func(m orm.Model) {
+	var users []fmt.Model
+	err = qb.ReadAll(NewUser, func(m fmt.Model) {
 		users = append(users, m)
 	})
 	if err != nil {
@@ -127,8 +127,8 @@ func TestPostgresAdapter(t *testing.T) {
 	}
 
 	// 2.b Test IN Operator
-	var inUsers []orm.Model
-	err = dbORM.Query(&User{}).Where("id").In([]any{1, 2}).ReadAll(NewUser, func(m orm.Model) {
+	var inUsers []fmt.Model
+	err = dbORM.Query(&User{}).Where("id").In([]any{1, 2}).ReadAll(NewUser, func(m fmt.Model) {
 		inUsers = append(inUsers, m)
 	})
 	if err != nil {
@@ -191,8 +191,8 @@ func TestPostgresAdapter(t *testing.T) {
 	}
 
 	// Verify Rollback
-	var txUsers []orm.Model
-	_ = dbORM.Query(&User{}).Where("name").Eq("TxUser").ReadAll(NewUser, func(m orm.Model) {
+	var txUsers []fmt.Model
+	_ = dbORM.Query(&User{}).Where("name").Eq("TxUser").ReadAll(NewUser, func(m fmt.Model) {
 		txUsers = append(txUsers, m)
 	})
 	if len(txUsers) != 0 {
@@ -300,11 +300,11 @@ func TestPostgresAdapter(t *testing.T) {
 	}
 
 	// Multiple conditions logic
-	var multiUsers []orm.Model
+	var multiUsers []fmt.Model
 	_ = dbORM.Query(&User{}).
 		Where("id").Gt(0).
 		Where("id").Lt(10).
-		ReadAll(NewUser, func(m orm.Model) {
+		ReadAll(NewUser, func(m fmt.Model) {
 			multiUsers = append(multiUsers, m)
 		})
 
@@ -326,7 +326,7 @@ func TestPostgresAdapter(t *testing.T) {
 	_ = dbORM.Update(foundUser2, orm.Eq("name", "Alice"), orm.Eq("id", 1))
 
 	// Complex conditions via read
-	var users2 []orm.Model
+	var users2 []fmt.Model
 	_ = dbORM.Query(&User{}).
 		Where("id").Eq(1).
 		Where("id").Gt(0).
@@ -336,7 +336,7 @@ func TestPostgresAdapter(t *testing.T) {
 		OrderBy("id").Desc().
 		Limit(10).
 		Offset(5).
-		ReadAll(NewUser, func(m orm.Model) {
+		ReadAll(NewUser, func(m fmt.Model) {
 			users2 = append(users2, m)
 		})
 
@@ -421,11 +421,11 @@ func TestPostgresAdapter(t *testing.T) {
 	}
 
 	// Let's also cover conditions with logic "" (it falls back to AND)
-	var logicUsers []orm.Model
+	var logicUsers []fmt.Model
 	_ = dbORM.Query(&User{}).
 		Where("id").Gt(0). // implicit AND on the next one
 		Where("name").Like("%").
-		ReadAll(NewUser, func(m orm.Model) {
+		ReadAll(NewUser, func(m fmt.Model) {
 			logicUsers = append(logicUsers, m)
 		})
 

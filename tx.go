@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
 )
 
@@ -20,7 +21,7 @@ var _ orm.Compiler = (*PostgresTx)(nil)
 var _ orm.Executor = (*PostgresTx)(nil)
 
 // Compile delegates to the PostgresAdapter.
-func (p *PostgresTx) Compile(q orm.Query, m orm.Model) (orm.Plan, error) {
+func (p *PostgresTx) Compile(q orm.Query, m fmt.Model) (orm.Plan, error) {
 	return p.adapter.Compile(q, m)
 }
 
