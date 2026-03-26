@@ -1,13 +1,13 @@
 //go:build !wasm
 
-package postgre_test
+package postgres_test
 
 import (
 	"testing"
 
-	postgre "github.com/cdvelop/postgre"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
+	"github.com/tinywasm/postgres"
 )
 
 // testUserModel is a minimal test model with a TEXT primary key (string PK, like unixid).
@@ -41,7 +41,7 @@ func TestTranslate_Update_WithCondition(t *testing.T) {
 		Conditions: []orm.Condition{orm.Eq("id", "abc123")},
 	}
 
-	sql, args, err := postgre.ExportTranslate(q, m)
+	sql, args, err := postgres.ExportTranslate(q, m)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -84,7 +84,7 @@ func TestTranslate_Update_MultipleConditions(t *testing.T) {
 		},
 	}
 
-	sql, args, err := postgre.ExportTranslate(q, m)
+	sql, args, err := postgres.ExportTranslate(q, m)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

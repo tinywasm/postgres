@@ -1,4 +1,4 @@
-package postgre
+package postgres
 
 import (
 	"github.com/tinywasm/fmt"
