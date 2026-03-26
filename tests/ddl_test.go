@@ -14,7 +14,7 @@ type MinimalModel struct {
 	Name string `db:"unique,not_null"`
 }
 
-func (m *MinimalModel) TableName() string {
+func (m *MinimalModel) ModelName() string {
 	return "minimal_models"
 }
 
@@ -29,7 +29,7 @@ func (m *MinimalModel) Pointers() []any {
 	return []any{&m.ID, &m.Name}
 }
 
-func NewMinimalModel() orm.Model {
+func NewMinimalModel() fmt.Model {
 	return &MinimalModel{}
 }
 
@@ -38,7 +38,7 @@ type RelatedModel struct {
 	MinimalID int64
 }
 
-func (r *RelatedModel) TableName() string {
+func (r *RelatedModel) ModelName() string {
 	return "related_models"
 }
 
@@ -59,7 +59,7 @@ func (r *RelatedModel) Pointers() []any {
 	return []any{&r.ID, &r.MinimalID}
 }
 
-func NewRelatedModel() orm.Model {
+func NewRelatedModel() fmt.Model {
 	return &RelatedModel{}
 }
 

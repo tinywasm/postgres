@@ -18,7 +18,7 @@ type testUserModel struct {
 	Age  int64
 }
 
-func (u *testUserModel) TableName() string { return "users" }
+func (u *testUserModel) ModelName() string { return "users" }
 func (u *testUserModel) Schema() []fmt.Field {
 	return []fmt.Field{
 		{Name: "id", Type: fmt.FieldText, PK: true},

@@ -21,7 +21,7 @@ func postgresType(t fmt.FieldType) string {
 	}
 }
 
-func translate(q orm.Query, m orm.Model) (string, []any, error) {
+func translate(q orm.Query, m fmt.Model) (string, []any, error) {
 	sb := fmt.Convert()
 	var args []any
 	argIndex := 1
