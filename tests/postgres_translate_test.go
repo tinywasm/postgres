@@ -20,7 +20,7 @@ type testUserModel struct {
 func (u *testUserModel) ModelName() string { return "users" }
 func (u *testUserModel) Schema() []fmt.Field {
 	return []fmt.Field{
-		{Name: "id", Type: fmt.FieldText, PK: true},
+		{Name: "id", Type: fmt.FieldText, DB: &fmt.FieldDB{PK: true}},
 		{Name: "name", Type: fmt.FieldText},
 		{Name: "age", Type: fmt.FieldInt},
 	}
