@@ -20,8 +20,8 @@ func (m *MinimalModel) ModelName() string {
 
 func (m *MinimalModel) Schema() []fmt.Field {
 	return []fmt.Field{
-		{Name: "id", Type: fmt.FieldInt, PK: true, AutoInc: true},
-		{Name: "name", Type: fmt.FieldText, Unique: true, NotNull: true},
+		{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true, AutoInc: true}},
+		{Name: "name", Type: fmt.FieldText, NotNull: true, DB: &fmt.FieldDB{Unique: true}},
 	}
 }
 
@@ -44,7 +44,7 @@ func (r *RelatedModel) ModelName() string {
 
 func (r *RelatedModel) Schema() []fmt.Field {
 	return []fmt.Field{
-		{Name: "id", Type: fmt.FieldInt, PK: true, AutoInc: true},
+		{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true, AutoInc: true}},
 		{Name: "minimal_id", Type: fmt.FieldInt},
 	}
 }

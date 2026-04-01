@@ -23,7 +23,7 @@ func (u *User) ModelName() string {
 
 func (u *User) Schema() []fmt.Field {
 	return []fmt.Field{
-		{Name: "id", Type: fmt.FieldInt, PK: true, AutoInc: true},
+		{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true, AutoInc: true}},
 		{Name: "name", Type: fmt.FieldText},
 		{Name: "email", Type: fmt.FieldText},
 	}
@@ -258,9 +258,9 @@ func TestPostgresAdapter(t *testing.T) {
 		Data   []byte
 	}
 	itemSchema := []fmt.Field{
-		{Name: "id", Type: fmt.FieldInt, PK: true, AutoInc: true}, // we use BIGSERIAL for FieldInt if PK/AutoInc
+		{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true, AutoInc: true}}, // we use BIGSERIAL for FieldInt if PK/AutoInc
 		{Name: "user_id", Type: fmt.FieldInt},
-		{Name: "name", Type: fmt.FieldText, NotNull: true, Unique: true},
+		{Name: "name", Type: fmt.FieldText, NotNull: true, DB: &fmt.FieldDB{Unique: true}},
 		{Name: "price", Type: fmt.FieldFloat},
 		{Name: "active", Type: fmt.FieldBool},
 		{Name: "data", Type: fmt.FieldBlob},

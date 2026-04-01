@@ -115,7 +115,7 @@ func translate(q orm.Query, m fmt.Model) (string, []any, error) {
 		// Count composite PK fields upfront to decide between inline and table-level PK.
 		var pkCols []string
 		for _, f := range fields {
-			if f.PK {
+			if f.IsPK() {
 				pkCols = append(pkCols, f.Name)
 			}
 		}
@@ -127,8 +127,8 @@ func translate(q orm.Query, m fmt.Model) (string, []any, error) {
 			}
 			sb.Write(f.Name)
 			sb.Write(" ")
-			isPK := f.PK
-			isAuto := f.AutoInc
+			isPK := f.IsPK()
+			isAuto := f.IsAutoInc()
 			if isPK && isAuto && !compositePK {
 				if f.Type == fmt.FieldInt {
 					sb.Write("BIGSERIAL")
@@ -153,7 +153,7 @@ func translate(q orm.Query, m fmt.Model) (string, []any, error) {
 			if f.NotNull {
 				sb.Write(" NOT NULL")
 			}
-			if f.Unique {
+			if f.IsUnique() {
 				sb.Write(" UNIQUE")
 			}
 		}
