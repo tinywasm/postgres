@@ -2,5 +2,5 @@ github.com/lib/pq v1.11.2 h1:x6gxUeu39V0BHZiugWe8LXZYZ+Utk7hSJGThs8sdzfs=
 github.com/lib/pq v1.11.2/go.mod h1:/p+8NSbOcwzAEI7wiMXFlgydTwcgTr3OSKMsD2BitpA=
 github.com/tinywasm/fmt v0.23.9 h1:ske2WHTRUJ6igkY8T9cI/zky1XcTRrOYSlbbHNp0UQw=
 github.com/tinywasm/fmt v0.23.9/go.mod h1:L2GCAi6asgytPV6TVvGrRq5Ml+DkUt1Ijo5i/2J1jOY=
-github.com/tinywasm/orm v0.8.2 h1:iUeIYZLAUUGzggbgJsIEcyeOdl8CB5FMf4Aqq7jkDuo=
-github.com/tinywasm/orm v0.8.2/go.mod h1:Ht7EldRrOH0UZovkF/REkdebPIY5FSxhhSPoszuWaEs=
+github.com/tinywasm/orm v0.8.3 h1:NojuaGmyffl+lZOgiF3b0ta9lNfC4sJsXKXhRneQd3E=
+github.com/tinywasm/orm v0.8.3/go.mod h1:Ht7EldRrOH0UZovkF/REkdebPIY5FSxhhSPoszuWaEs=
