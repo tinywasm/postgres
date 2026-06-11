@@ -8,6 +8,10 @@ import (
 	"github.com/tinywasm/orm"
 )
 
+func init() {
+	orm.Register("postgres", New)
+}
+
 // PostgresAdapter is a PostgreSQL adapter for the tinywasm/orm library.
 type PostgresAdapter struct {
 	db *sql.DB
@@ -63,7 +67,7 @@ func (p *PostgresAdapter) Exec(query string, args ...any) error {
 
 // QueryRow executes a query that is expected to return at most one row.
 func (p *PostgresAdapter) QueryRow(query string, args ...any) orm.Scanner {
-	return p.db.QueryRow(query, args...)
+	return errScanner{p.db.QueryRow(query, args...)}
 }
 
 // Query executes a query that returns rows.
@@ -74,4 +78,41 @@ func (p *PostgresAdapter) Query(query string, args ...any) (orm.Rows, error) {
 // Close closes the database connection.
 func (p *PostgresAdapter) Close() error {
 	return p.db.Close()
+}
+
+func tableColumns(q interface{ Query(string, ...any) (orm.Rows, error) }, table string) ([]string, error) {
+	rows, err := q.Query(
+		`SELECT column_name FROM information_schema.columns WHERE table_name = $1`, table)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var cols []string
+	for rows.Next() {
+		var c string
+		if err := rows.Scan(&c); err != nil {
+			return nil, err
+		}
+		cols = append(cols, c)
+	}
+	return cols, rows.Err()
+}
+
+// TableColumns returns the column names for the given table.
+func (p *PostgresAdapter) TableColumns(table string) ([]string, error) {
+	return tableColumns(p, table)
+}
+
+type errScanner struct {
+	s orm.Scanner
+}
+
+func (e errScanner) Scan(dest ...any) error {
+	if err := e.s.Scan(dest...); err != nil {
+		if err == sql.ErrNoRows {
+			return orm.ErrNoRows
+		}
+		return err
+	}
+	return nil
 }
