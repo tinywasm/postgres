@@ -182,6 +182,37 @@ func translate(q orm.Query, m fmt.Model) (string, []any, error) {
 		sb.Write("DROP TABLE IF EXISTS ")
 		sb.Write(q.Table)
 
+	case orm.ActionAddColumn:
+		if q.Column == nil || q.Table == "" {
+			return "", nil, fmt.Err("table and column required for add column")
+		}
+		sb.Write("ALTER TABLE ")
+		sb.Write(q.Table)
+		sb.Write(" ADD COLUMN IF NOT EXISTS ")
+		sb.Write(q.Column.Name)
+		sb.Write(" ")
+		sb.Write(postgresType(q.Column.Type))
+
+	case orm.ActionRenameColumn:
+		if q.Column == nil || q.OldName == "" || q.Table == "" {
+			return "", nil, fmt.Err("table, old name and column required for rename")
+		}
+		sb.Write("ALTER TABLE ")
+		sb.Write(q.Table)
+		sb.Write(" RENAME COLUMN ")
+		sb.Write(q.OldName)
+		sb.Write(" TO ")
+		sb.Write(q.Column.Name)
+
+	case orm.ActionDropColumn:
+		if q.Table == "" || len(q.Columns) == 0 {
+			return "", nil, fmt.Err("table and column required for drop column")
+		}
+		sb.Write("ALTER TABLE ")
+		sb.Write(q.Table)
+		sb.Write(" DROP COLUMN IF EXISTS ")
+		sb.Write(q.Columns[0])
+
 	case orm.ActionCreateDatabase:
 		sb.Write("CREATE DATABASE ")
 		sb.Write(q.Database)
@@ -213,7 +244,15 @@ func buildConditions(sb *fmt.Conv, conditions []orm.Condition, args *[]any, argI
 			sb.Write(fmt.Sprintf(" %s ", logic))
 		}
 
-		if c.Operator() == "IN" {
+		op := c.Operator()
+		if op == "IS NULL" || op == "IS NOT NULL" {
+			sb.Write(c.Field())
+			sb.Write(" ")
+			sb.Write(op)
+			continue
+		}
+
+		if op == "IN" {
 			slice, ok := c.Value().([]any)
 			if !ok {
 				return fmt.Errf("IN operator requires []any value, got %T", c.Value())

@@ -33,6 +33,7 @@ func main() {
 - Secure SQL generation with parameterized queries using `$1`, `$2`, etc.
 - Support for `Create`, `ReadOne`, `ReadAll`, `Update`, `Delete`.
 - Efficient row scanning.
+- **Schema-Sync support**: Registers as `"postgres"`, maps `ErrNoRows`, and implements `TableIntrospector` for full reconcile (additive column sync, column rename, and safe-drop).
 
 ## Update
 

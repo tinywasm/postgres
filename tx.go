@@ -33,7 +33,7 @@ func (p *PostgresTx) Exec(query string, args ...any) error {
 
 // QueryRow executes a query that is expected to return at most one row within the transaction.
 func (p *PostgresTx) QueryRow(query string, args ...any) orm.Scanner {
-	return p.tx.QueryRow(query, args...)
+	return errScanner{p.tx.QueryRow(query, args...)}
 }
 
 // Query executes a query that returns rows within the transaction.
@@ -55,6 +55,11 @@ func (p *PostgresTx) Commit() error {
 // Rollback aborts the transaction.
 func (p *PostgresTx) Rollback() error {
 	return p.tx.Rollback()
+}
+
+// TableColumns returns the column names for the given table within the transaction.
+func (p *PostgresTx) TableColumns(table string) ([]string, error) {
+	return tableColumns(p, table)
 }
 
 // BeginTx starts a transaction and returns a new orm.TxBoundExecutor.
