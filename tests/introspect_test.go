@@ -16,7 +16,7 @@ func TestIntrospection(t *testing.T) {
 
 	db, err := postgres.New(dsn)
 	if err != nil {
-		t.Fatalf("failed to connect to postgres: %v", err)
+		t.Skipf("postgres not available: %v", err)
 	}
 	defer db.Close()
 
