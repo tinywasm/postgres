@@ -62,6 +62,19 @@ func (p *PostgresTx) TableColumns(table string) ([]string, error) {
 	return tableColumns(p, table)
 }
 
+// Tables returns all user-defined table names in the current schema.
+func (p *PostgresTx) Tables() ([]string, error) {
+	return tables(p)
+}
+
+// Columns returns full column metadata for the given table.
+func (p *PostgresTx) Columns(table string) ([]orm.ColumnInfo, error) {
+	return columns(p, table)
+}
+
+// Ensure PostgresTx implements orm.SchemaInspector
+var _ orm.SchemaInspector = (*PostgresTx)(nil)
+
 // BeginTx starts a transaction and returns a new orm.TxBoundExecutor.
 func (p *PostgresAdapter) BeginTx() (orm.TxBoundExecutor, error) {
 	tx, err := p.db.BeginTx(context.Background(), nil)
