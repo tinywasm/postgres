@@ -21,6 +21,26 @@ func postgresType(t fmt.FieldType) string {
 	}
 }
 
+func postgresColumnType(f fmt.Field) string {
+	if f.Type == fmt.FieldText && f.Permitted.Maximum > 0 {
+		return fmt.Sprintf("VARCHAR(%d)", f.Permitted.Maximum)
+	}
+	return postgresType(f.Type)
+}
+
+func onDeleteSQL(action string) string {
+	switch action {
+	case "restrict":
+		return "RESTRICT"
+	case "set_null":
+		return "SET NULL"
+	case "no_action":
+		return "NO ACTION"
+	default:
+		return "CASCADE"
+	}
+}
+
 func translate(q orm.Query, m fmt.Model) (string, []any, error) {
 	sb := fmt.Convert()
 	var args []any
@@ -140,7 +160,7 @@ func translate(q orm.Query, m fmt.Model) (string, []any, error) {
 			} else if isAuto {
 				sb.Write("SERIAL")
 			} else {
-				sb.Write(postgresType(f.Type))
+				sb.Write(postgresColumnType(f))
 			}
 			if isPK {
 				if compositePK {
@@ -170,8 +190,8 @@ func translate(q orm.Query, m fmt.Model) (string, []any, error) {
 					if refCol == "" {
 						refCol = "id"
 					}
-					sb.Write(fmt.Sprintf(", CONSTRAINT fk_%s_%s FOREIGN KEY (%s) REFERENCES %s(%s)",
-						q.Table, f.Name, f.Name, f.Ref, refCol))
+					sb.Write(fmt.Sprintf(", CONSTRAINT fk_%s_%s FOREIGN KEY (%s) REFERENCES %s(%s) ON DELETE %s",
+						q.Table, f.Name, f.Name, f.Ref, refCol, onDeleteSQL(f.OnDelete)))
 				}
 			}
 		}

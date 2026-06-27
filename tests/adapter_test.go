@@ -274,7 +274,7 @@ func TestPostgresAdapter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to compile CreateTable with constraints: %v", err)
 	}
-	expectedCreate2 := "CREATE TABLE IF NOT EXISTS items (id BIGSERIAL PRIMARY KEY, user_id BIGINT, name TEXT NOT NULL UNIQUE, price DOUBLE PRECISION, active BOOLEAN, data BYTEA, CONSTRAINT fk_items_user_id FOREIGN KEY (user_id) REFERENCES users(id))"
+	expectedCreate2 := "CREATE TABLE IF NOT EXISTS items (id BIGSERIAL PRIMARY KEY, user_id BIGINT, name TEXT NOT NULL UNIQUE, price DOUBLE PRECISION, active BOOLEAN, data BYTEA, CONSTRAINT fk_items_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE)"
 	if createPlan2.Query != expectedCreate2 {
 		t.Errorf("CreateTable constraints mismatch. expected: %q, got: %q", expectedCreate2, createPlan2.Query)
 	}
@@ -440,4 +440,24 @@ func TestPostgresAdapter(t *testing.T) {
 		Email string
 	}
 	// We'll skip formal DB model for View to save boilerplate, but it tests standard components via the above.
+
+	// Cover TableColumns
+	cols, err := dbORM.RawExecutor().(orm.TableIntrospector).TableColumns("users")
+	if err != nil {
+		t.Errorf("TableColumns failed: %v", err)
+	}
+	if len(cols) == 0 {
+		t.Errorf("Expected columns for 'users', got 0")
+	}
+
+	_ = dbORM.Tx(func(tx *orm.DB) error {
+		cols, err := tx.RawExecutor().(orm.TableIntrospector).TableColumns("users")
+		if err != nil {
+			return err
+		}
+		if len(cols) == 0 {
+			t.Errorf("Expected columns for 'users' in tx, got 0")
+		}
+		return nil
+	})
 }
