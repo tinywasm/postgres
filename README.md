@@ -3,6 +3,8 @@
 
 This repository implements the `orm.Adapter` interface for PostgreSQL, allowing it to be used with the `github.com/tinywasm/orm` library.
 
+Uses `model.Model` types for schema definitions.
+
 ## Usage
 
 ```go
