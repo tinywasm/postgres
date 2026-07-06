@@ -1,12 +1,13 @@
 package tests
 
+import "github.com/tinywasm/model"
+
 import (
 	"os"
 	"testing"
 
-	"github.com/tinywasm/postgres"
-	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
+	"github.com/tinywasm/postgres"
 )
 
 type MinimalModel struct {
@@ -18,10 +19,10 @@ func (m *MinimalModel) ModelName() string {
 	return "minimal_models"
 }
 
-func (m *MinimalModel) Schema() []fmt.Field {
-	return []fmt.Field{
-		{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true, AutoInc: true}},
-		{Name: "name", Type: fmt.FieldText, NotNull: true, DB: &fmt.FieldDB{Unique: true}},
+func (m *MinimalModel) Schema() []model.Field {
+	return []model.Field{
+		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
+		{Name: "name", Type: model.FieldText, NotNull: true, DB: &model.FieldDB{Unique: true}},
 	}
 }
 
@@ -29,7 +30,7 @@ func (m *MinimalModel) Pointers() []any {
 	return []any{&m.ID, &m.Name}
 }
 
-func NewMinimalModel() fmt.Model {
+func NewMinimalModel() model.Model {
 	return &MinimalModel{}
 }
 
@@ -42,16 +43,16 @@ func (r *RelatedModel) ModelName() string {
 	return "related_models"
 }
 
-func (r *RelatedModel) Schema() []fmt.Field {
-	return []fmt.Field{
-		{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true, AutoInc: true}},
-		{Name: "minimal_id", Type: fmt.FieldInt},
+func (r *RelatedModel) Schema() []model.Field {
+	return []model.Field{
+		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
+		{Name: "minimal_id", Type: model.FieldInt},
 	}
 }
 
 func (r *RelatedModel) SchemaExt() []orm.FieldExt {
 	return []orm.FieldExt{
-		{Field: fmt.Field{Name: "minimal_id"}, Ref: "minimal_models", RefColumn: "id"},
+		{Field: model.Field{Name: "minimal_id"}, Ref: "minimal_models", RefColumn: "id"},
 	}
 }
 
@@ -59,7 +60,7 @@ func (r *RelatedModel) Pointers() []any {
 	return []any{&r.ID, &r.MinimalID}
 }
 
-func NewRelatedModel() fmt.Model {
+func NewRelatedModel() model.Model {
 	return &RelatedModel{}
 }
 

@@ -1,28 +1,30 @@
 package postgres
 
+import "github.com/tinywasm/model"
+
 import (
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
 )
 
 // translate converts an ORM query to a PostgreSQL query and arguments.
-func postgresType(t fmt.FieldType) string {
+func postgresType(t model.FieldType) string {
 	switch t {
-	case fmt.FieldInt:
+	case model.FieldInt:
 		return "BIGINT"
-	case fmt.FieldFloat:
+	case model.FieldFloat:
 		return "DOUBLE PRECISION"
-	case fmt.FieldBool:
+	case model.FieldBool:
 		return "BOOLEAN"
-	case fmt.FieldBlob:
+	case model.FieldBlob:
 		return "BYTEA"
 	default:
 		return "TEXT"
 	}
 }
 
-func postgresColumnType(f fmt.Field) string {
-	if f.Type == fmt.FieldText && f.Permitted.Maximum > 0 {
+func postgresColumnType(f model.Field) string {
+	if f.Type == model.FieldText && f.Permitted.Maximum > 0 {
 		return fmt.Sprintf("VARCHAR(%d)", f.Permitted.Maximum)
 	}
 	return postgresType(f.Type)
@@ -41,7 +43,7 @@ func onDeleteSQL(action string) string {
 	}
 }
 
-func translate(q orm.Query, m fmt.Model) (string, []any, error) {
+func translate(q orm.Query, m model.Model) (string, []any, error) {
 	sb := fmt.Convert()
 	var args []any
 	argIndex := 1
@@ -150,12 +152,12 @@ func translate(q orm.Query, m fmt.Model) (string, []any, error) {
 			isPK := f.IsPK()
 			isAuto := f.IsAutoInc()
 			if isPK && isAuto && !compositePK {
-				if f.Type == fmt.FieldInt {
+				if f.Type == model.FieldInt {
 					sb.Write("BIGSERIAL")
 				} else {
 					sb.Write("SERIAL")
 				}
-			} else if isAuto && f.Type == fmt.FieldInt {
+			} else if isAuto && f.Type == model.FieldInt {
 				sb.Write("BIGSERIAL")
 			} else if isAuto {
 				sb.Write("SERIAL")
@@ -180,7 +182,7 @@ func translate(q orm.Query, m fmt.Model) (string, []any, error) {
 		if compositePK {
 			sb.Write(fmt.Sprintf(", PRIMARY KEY (%s)", fmt.Convert(pkCols).Join(", ").String()))
 		}
-		// orm.FieldExt is used for FKs. Since m.Schema() returns []fmt.Field,
+		// orm.FieldExt is used for FKs. Since m.Schema() returns []model.Field,
 		// we need to check if the implementation provided FieldExt.
 		// In tinywasm/orm, models that have FKs can optionally implement an extended schema.
 		if ext, ok := m.(interface{ SchemaExt() []orm.FieldExt }); ok {
@@ -245,7 +247,7 @@ func translate(q orm.Query, m fmt.Model) (string, []any, error) {
 }
 
 // Translate exposes translate for external testing packages.
-func Translate(q orm.Query, m fmt.Model) (string, []any, error) {
+func Translate(q orm.Query, m model.Model) (string, []any, error) {
 	return translate(q, m)
 }
 

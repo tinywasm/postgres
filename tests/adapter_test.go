@@ -1,13 +1,14 @@
 package tests
 
+import "github.com/tinywasm/model"
+
 import (
 	"database/sql"
 	"os"
 	"testing"
 
-	"github.com/tinywasm/postgres"
-	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
+	"github.com/tinywasm/postgres"
 )
 
 // Define a simple model for testing
@@ -21,11 +22,11 @@ func (u *User) ModelName() string {
 	return "users"
 }
 
-func (u *User) Schema() []fmt.Field {
-	return []fmt.Field{
-		{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true, AutoInc: true}},
-		{Name: "name", Type: fmt.FieldText},
-		{Name: "email", Type: fmt.FieldText},
+func (u *User) Schema() []model.Field {
+	return []model.Field{
+		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
+		{Name: "name", Type: model.FieldText},
+		{Name: "email", Type: model.FieldText},
 	}
 }
 
@@ -34,17 +35,17 @@ func (u *User) Pointers() []any {
 }
 
 // Factory function
-func NewUser() fmt.Model {
+func NewUser() model.Model {
 	return &User{}
 }
 
 type MockModel struct {
-	schema []fmt.Field
+	schema []model.Field
 }
 
-func (m *MockModel) ModelName() string { return "mock" }
-func (m *MockModel) Schema() []fmt.Field { return m.schema }
-func (m *MockModel) Pointers() []any { return nil }
+func (m *MockModel) ModelName() string     { return "mock" }
+func (m *MockModel) Schema() []model.Field { return m.schema }
+func (m *MockModel) Pointers() []any       { return nil }
 
 type MockModelExt struct {
 	MockModel
@@ -52,7 +53,7 @@ type MockModelExt struct {
 
 func (m *MockModelExt) SchemaExt() []orm.FieldExt {
 	return []orm.FieldExt{
-		{Field: fmt.Field{Name: "user_id", Type: fmt.FieldInt}, Ref: "users", RefColumn: "id"},
+		{Field: model.Field{Name: "user_id", Type: model.FieldInt}, Ref: "users", RefColumn: "id"},
 	}
 }
 
@@ -115,8 +116,8 @@ func TestPostgresAdapter(t *testing.T) {
 		Limit(2).
 		Offset(1)
 
-	var users []fmt.Model
-	err = qb.ReadAll(NewUser, func(m fmt.Model) {
+	var users []model.Model
+	err = qb.ReadAll(NewUser, func(m model.Model) {
 		users = append(users, m)
 	})
 	if err != nil {
@@ -127,8 +128,8 @@ func TestPostgresAdapter(t *testing.T) {
 	}
 
 	// 2.b Test IN Operator
-	var inUsers []fmt.Model
-	err = dbORM.Query(&User{}).Where("id").In([]any{1, 2}).ReadAll(NewUser, func(m fmt.Model) {
+	var inUsers []model.Model
+	err = dbORM.Query(&User{}).Where("id").In([]any{1, 2}).ReadAll(NewUser, func(m model.Model) {
 		inUsers = append(inUsers, m)
 	})
 	if err != nil {
@@ -191,8 +192,8 @@ func TestPostgresAdapter(t *testing.T) {
 	}
 
 	// Verify Rollback
-	var txUsers []fmt.Model
-	_ = dbORM.Query(&User{}).Where("name").Eq("TxUser").ReadAll(NewUser, func(m fmt.Model) {
+	var txUsers []model.Model
+	_ = dbORM.Query(&User{}).Where("name").Eq("TxUser").ReadAll(NewUser, func(m model.Model) {
 		txUsers = append(txUsers, m)
 	})
 	if len(txUsers) != 0 {
@@ -257,13 +258,13 @@ func TestPostgresAdapter(t *testing.T) {
 		Active bool
 		Data   []byte
 	}
-	itemSchema := []fmt.Field{
-		{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true, AutoInc: true}}, // we use BIGSERIAL for FieldInt if PK/AutoInc
-		{Name: "user_id", Type: fmt.FieldInt},
-		{Name: "name", Type: fmt.FieldText, NotNull: true, DB: &fmt.FieldDB{Unique: true}},
-		{Name: "price", Type: fmt.FieldFloat},
-		{Name: "active", Type: fmt.FieldBool},
-		{Name: "data", Type: fmt.FieldBlob},
+	itemSchema := []model.Field{
+		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}}, // we use BIGSERIAL for FieldInt if PK/AutoInc
+		{Name: "user_id", Type: model.FieldInt},
+		{Name: "name", Type: model.FieldText, NotNull: true, DB: &model.FieldDB{Unique: true}},
+		{Name: "price", Type: model.FieldFloat},
+		{Name: "active", Type: model.FieldBool},
+		{Name: "data", Type: model.FieldBlob},
 	}
 	// override Schema
 	// Since we can't easily override schema on struct literal without defining it properly, we'll just mock it.
@@ -300,11 +301,11 @@ func TestPostgresAdapter(t *testing.T) {
 	}
 
 	// Multiple conditions logic
-	var multiUsers []fmt.Model
+	var multiUsers []model.Model
 	_ = dbORM.Query(&User{}).
 		Where("id").Gt(0).
 		Where("id").Lt(10).
-		ReadAll(NewUser, func(m fmt.Model) {
+		ReadAll(NewUser, func(m model.Model) {
 			multiUsers = append(multiUsers, m)
 		})
 
@@ -326,7 +327,7 @@ func TestPostgresAdapter(t *testing.T) {
 	_ = dbORM.Update(foundUser2, orm.Eq("name", "Alice"), orm.Eq("id", 1))
 
 	// Complex conditions via read
-	var users2 []fmt.Model
+	var users2 []model.Model
 	_ = dbORM.Query(&User{}).
 		Where("id").Eq(1).
 		Where("id").Gt(0).
@@ -336,7 +337,7 @@ func TestPostgresAdapter(t *testing.T) {
 		OrderBy("id").Desc().
 		Limit(10).
 		Offset(5).
-		ReadAll(NewUser, func(m fmt.Model) {
+		ReadAll(NewUser, func(m model.Model) {
 			users2 = append(users2, m)
 		})
 
@@ -421,11 +422,11 @@ func TestPostgresAdapter(t *testing.T) {
 	}
 
 	// Let's also cover conditions with logic "" (it falls back to AND)
-	var logicUsers []fmt.Model
+	var logicUsers []model.Model
 	_ = dbORM.Query(&User{}).
 		Where("id").Gt(0). // implicit AND on the next one
 		Where("name").Like("%").
-		ReadAll(NewUser, func(m fmt.Model) {
+		ReadAll(NewUser, func(m model.Model) {
 			logicUsers = append(logicUsers, m)
 		})
 

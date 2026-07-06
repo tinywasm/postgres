@@ -2,12 +2,13 @@
 
 package tests
 
+import "github.com/tinywasm/model"
+
 import (
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
 	"github.com/tinywasm/orm/ddl"
 	"github.com/tinywasm/postgres"
@@ -16,14 +17,14 @@ import (
 type userModel struct{}
 
 func (m *userModel) ModelName() string { return "users" }
-func (m *userModel) Schema() []fmt.Field {
-	return []fmt.Field{
-		{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true, AutoInc: true}},
-		{Name: "username", Type: fmt.FieldText, NotNull: true, Permitted: fmt.Permitted{Maximum: 50}, DB: &fmt.FieldDB{Unique: true}},
-		{Name: "email", Type: fmt.FieldText, NotNull: true, DB: &fmt.FieldDB{Unique: true}},
-		{Name: "score", Type: fmt.FieldFloat},
-		{Name: "active", Type: fmt.FieldBool},
-		{Name: "avatar", Type: fmt.FieldBlob},
+func (m *userModel) Schema() []model.Field {
+	return []model.Field{
+		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
+		{Name: "username", Type: model.FieldText, NotNull: true, Permitted: model.Permitted{Maximum: 50}, DB: &model.FieldDB{Unique: true}},
+		{Name: "email", Type: model.FieldText, NotNull: true, DB: &model.FieldDB{Unique: true}},
+		{Name: "score", Type: model.FieldFloat},
+		{Name: "active", Type: model.FieldBool},
+		{Name: "avatar", Type: model.FieldBlob},
 	}
 }
 func (m *userModel) Pointers() []any { return nil }
@@ -31,10 +32,10 @@ func (m *userModel) Pointers() []any { return nil }
 type roleModel struct{}
 
 func (m *roleModel) ModelName() string { return "roles" }
-func (m *roleModel) Schema() []fmt.Field {
-	return []fmt.Field{
-		{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true, AutoInc: true}},
-		{Name: "name", Type: fmt.FieldText, NotNull: true, Permitted: fmt.Permitted{Maximum: 100}, DB: &fmt.FieldDB{Unique: true}},
+func (m *roleModel) Schema() []model.Field {
+	return []model.Field{
+		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
+		{Name: "name", Type: model.FieldText, NotNull: true, Permitted: model.Permitted{Maximum: 100}, DB: &model.FieldDB{Unique: true}},
 	}
 }
 func (m *roleModel) Pointers() []any { return nil }
@@ -42,16 +43,16 @@ func (m *roleModel) Pointers() []any { return nil }
 type sessionModel struct{}
 
 func (m *sessionModel) ModelName() string { return "sessions" }
-func (m *sessionModel) Schema() []fmt.Field {
-	return []fmt.Field{
-		{Name: "id", Type: fmt.FieldText, DB: &fmt.FieldDB{PK: true}},
-		{Name: "user_id", Type: fmt.FieldInt},
-		{Name: "metadata", Type: fmt.FieldText},
+func (m *sessionModel) Schema() []model.Field {
+	return []model.Field{
+		{Name: "id", Type: model.FieldText, DB: &model.FieldDB{PK: true}},
+		{Name: "user_id", Type: model.FieldInt},
+		{Name: "metadata", Type: model.FieldText},
 	}
 }
 func (m *sessionModel) SchemaExt() []orm.FieldExt {
 	return []orm.FieldExt{
-		{Field: fmt.Field{Name: "user_id"}, Ref: "users"},
+		{Field: model.Field{Name: "user_id"}, Ref: "users"},
 	}
 }
 func (m *sessionModel) Pointers() []any { return nil }
@@ -59,16 +60,16 @@ func (m *sessionModel) Pointers() []any { return nil }
 type userRoleModel struct{}
 
 func (m *userRoleModel) ModelName() string { return "user_roles" }
-func (m *userRoleModel) Schema() []fmt.Field {
-	return []fmt.Field{
-		{Name: "user_id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true}},
-		{Name: "role_id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true}},
+func (m *userRoleModel) Schema() []model.Field {
+	return []model.Field{
+		{Name: "user_id", Type: model.FieldInt, DB: &model.FieldDB{PK: true}},
+		{Name: "role_id", Type: model.FieldInt, DB: &model.FieldDB{PK: true}},
 	}
 }
 func (m *userRoleModel) SchemaExt() []orm.FieldExt {
 	return []orm.FieldExt{
-		{Field: fmt.Field{Name: "user_id"}, Ref: "users"},
-		{Field: fmt.Field{Name: "role_id"}, Ref: "roles"},
+		{Field: model.Field{Name: "user_id"}, Ref: "users"},
+		{Field: model.Field{Name: "role_id"}, Ref: "roles"},
 	}
 }
 func (m *userRoleModel) Pointers() []any { return nil }
@@ -91,7 +92,7 @@ func TestExportDDL_FullSchema(t *testing.T) {
 	golden := sb.String()
 
 	c := postgres.NewCompiler()
-	models := []fmt.Model{
+	models := []model.Model{
 		&userModel{},
 		&roleModel{},
 		&sessionModel{},

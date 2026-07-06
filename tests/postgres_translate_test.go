@@ -2,6 +2,8 @@
 
 package tests
 
+import "github.com/tinywasm/model"
+
 import (
 	"testing"
 
@@ -18,11 +20,11 @@ type testUserModel struct {
 }
 
 func (u *testUserModel) ModelName() string { return "users" }
-func (u *testUserModel) Schema() []fmt.Field {
-	return []fmt.Field{
-		{Name: "id", Type: fmt.FieldText, DB: &fmt.FieldDB{PK: true}},
-		{Name: "name", Type: fmt.FieldText},
-		{Name: "age", Type: fmt.FieldInt},
+func (u *testUserModel) Schema() []model.Field {
+	return []model.Field{
+		{Name: "id", Type: model.FieldText, DB: &model.FieldDB{PK: true}},
+		{Name: "name", Type: model.FieldText},
+		{Name: "age", Type: model.FieldInt},
 	}
 }
 func (u *testUserModel) Pointers() []any { return []any{&u.ID, &u.Name, &u.Age} }
@@ -36,7 +38,7 @@ func TestTranslate_Update_WithCondition(t *testing.T) {
 		Action:  orm.ActionUpdate,
 		Table:   "users",
 		Columns: []string{"id", "name", "age"},
-		Values:  fmt.ReadValues(m.Schema(), m.Pointers()),
+		Values:  model.ReadValues(m.Schema(), m.Pointers()),
 		// At least one condition — as guaranteed by tinywasm/orm after the fix.
 		Conditions: []orm.Condition{orm.Eq("id", "abc123")},
 	}
@@ -72,11 +74,11 @@ func TestTranslate_Update_WithCondition(t *testing.T) {
 type varcharModel struct{}
 
 func (m *varcharModel) ModelName() string { return "varchars" }
-func (m *varcharModel) Schema() []fmt.Field {
-	return []fmt.Field{
-		{Name: "username", Type: fmt.FieldText, Permitted: fmt.Permitted{Maximum: 100}},
-		{Name: "email", Type: fmt.FieldText},
-		{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true, AutoInc: true}},
+func (m *varcharModel) Schema() []model.Field {
+	return []model.Field{
+		{Name: "username", Type: model.FieldText, Permitted: model.Permitted{Maximum: 100}},
+		{Name: "email", Type: model.FieldText},
+		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
 	}
 }
 func (m *varcharModel) Pointers() []any { return nil }
@@ -103,17 +105,17 @@ func TestVarchar_Postgres(t *testing.T) {
 type onDeleteModel struct{}
 
 func (m *onDeleteModel) ModelName() string { return "on_deletes" }
-func (m *onDeleteModel) Schema() []fmt.Field {
-	return []fmt.Field{
-		{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true}},
-		{Name: "user_id", Type: fmt.FieldInt},
-		{Name: "role_id", Type: fmt.FieldInt},
+func (m *onDeleteModel) Schema() []model.Field {
+	return []model.Field{
+		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true}},
+		{Name: "user_id", Type: model.FieldInt},
+		{Name: "role_id", Type: model.FieldInt},
 	}
 }
 func (m *onDeleteModel) SchemaExt() []orm.FieldExt {
 	return []orm.FieldExt{
-		{Field: fmt.Field{Name: "user_id"}, Ref: "users", OnDelete: "restrict"},
-		{Field: fmt.Field{Name: "role_id"}, Ref: "roles"}, // Default CASCADE
+		{Field: model.Field{Name: "user_id"}, Ref: "users", OnDelete: "restrict"},
+		{Field: model.Field{Name: "role_id"}, Ref: "roles"}, // Default CASCADE
 	}
 }
 func (m *onDeleteModel) Pointers() []any { return nil }
@@ -147,7 +149,7 @@ func TestOnDelete_Postgres(t *testing.T) {
 
 	for _, c := range cases {
 		m2Ext := []orm.FieldExt{
-			{Field: fmt.Field{Name: "user_id"}, Ref: "users", OnDelete: c.action},
+			{Field: model.Field{Name: "user_id"}, Ref: "users", OnDelete: c.action},
 		}
 		// We need a model that returns these SchemaExt
 		sql, _, _ := postgres.Translate(q2, &mockOnDeleteModel{m2Ext})
@@ -162,10 +164,10 @@ type mockOnDeleteModel struct {
 }
 
 func (m *mockOnDeleteModel) ModelName() string { return "on_deletes" }
-func (m *mockOnDeleteModel) Schema() []fmt.Field {
-	return []fmt.Field{
-		{Name: "id", Type: fmt.FieldInt, DB: &fmt.FieldDB{PK: true}},
-		{Name: "user_id", Type: fmt.FieldInt},
+func (m *mockOnDeleteModel) Schema() []model.Field {
+	return []model.Field{
+		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true}},
+		{Name: "user_id", Type: model.FieldInt},
 	}
 }
 func (m *mockOnDeleteModel) SchemaExt() []orm.FieldExt { return m.ext }
@@ -179,7 +181,7 @@ func TestTranslate_Update_MultipleConditions(t *testing.T) {
 		Action:  orm.ActionUpdate,
 		Table:   "users",
 		Columns: []string{"id", "name", "age"},
-		Values:  fmt.ReadValues(m.Schema(), m.Pointers()),
+		Values:  model.ReadValues(m.Schema(), m.Pointers()),
 		Conditions: []orm.Condition{
 			orm.Eq("id", "abc123"),
 			orm.Eq("name", "Alice"),

@@ -2,6 +2,8 @@
 
 package tests
 
+import "github.com/tinywasm/model"
+
 import (
 	"testing"
 
@@ -17,7 +19,7 @@ func TestTranslate_NewActions(t *testing.T) {
 		q := orm.Query{
 			Action: orm.ActionAddColumn,
 			Table:  "users",
-			Column: &fmt.Field{Name: "bio", Type: fmt.FieldText},
+			Column: &model.Field{Name: "bio", Type: model.FieldText},
 		}
 		sql, _, err := postgres.Translate(q, m)
 		if err != nil {
@@ -34,7 +36,7 @@ func TestTranslate_NewActions(t *testing.T) {
 			Action:  orm.ActionRenameColumn,
 			Table:   "users",
 			OldName: "age",
-			Column:  &fmt.Field{Name: "years", Type: fmt.FieldInt},
+			Column:  &model.Field{Name: "years", Type: model.FieldInt},
 		}
 		sql, _, err := postgres.Translate(q, m)
 		if err != nil {

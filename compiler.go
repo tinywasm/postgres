@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"github.com/tinywasm/model"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
 	"github.com/tinywasm/orm/ddl"
@@ -15,7 +16,7 @@ func NewCompiler() *Compiler {
 }
 
 // Compile compiles an ORM query into a Plan.
-func (c *Compiler) Compile(q orm.Query, m fmt.Model) (orm.Plan, error) {
+func (c *Compiler) Compile(q orm.Query, m model.Model) (orm.Plan, error) {
 	query, args, err := Translate(q, m)
 	if err != nil {
 		return orm.Plan{}, err
@@ -27,7 +28,7 @@ func (c *Compiler) Compile(q orm.Query, m fmt.Model) (orm.Plan, error) {
 }
 
 // ExportDDL generates a full DDL string for the given models.
-func (c *Compiler) ExportDDL(models []fmt.Model) (string, error) {
+func (c *Compiler) ExportDDL(models []model.Model) (string, error) {
 	sorted, err := ddl.TopologicalSort(models)
 	if err != nil {
 		return "", err
