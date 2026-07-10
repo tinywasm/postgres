@@ -19,7 +19,7 @@ func TestTranslate_NewActions(t *testing.T) {
 		q := orm.Query{
 			Action: orm.ActionAddColumn,
 			Table:  "users",
-			Column: &model.Field{Name: "bio", Type: model.FieldText},
+			Column: &model.Field{Name: "bio", Type: model.Text()},
 		}
 		sql, _, err := postgres.Translate(q, m)
 		if err != nil {
@@ -36,7 +36,7 @@ func TestTranslate_NewActions(t *testing.T) {
 			Action:  orm.ActionRenameColumn,
 			Table:   "users",
 			OldName: "age",
-			Column:  &model.Field{Name: "years", Type: model.FieldInt},
+			Column:  &model.Field{Name: "years", Type: model.Int()},
 		}
 		sql, _, err := postgres.Translate(q, m)
 		if err != nil {

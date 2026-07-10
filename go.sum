@@ -1,10 +1,10 @@
 github.com/lib/pq v1.11.2 h1:x6gxUeu39V0BHZiugWe8LXZYZ+Utk7hSJGThs8sdzfs=
 github.com/lib/pq v1.11.2/go.mod h1:/p+8NSbOcwzAEI7wiMXFlgydTwcgTr3OSKMsD2BitpA=
+github.com/tinywasm/ddlc v0.0.2 h1:N9J7rnYtI8NXzLLtpPd3vLljBuNhdCDrtyaLf8pz7Ss=
+github.com/tinywasm/ddlc v0.0.2/go.mod h1:DXTFES2Mt3QcxYp0sZ6YrMXxOkK7vRVCoukFgyt+Mro=
 github.com/tinywasm/fmt v0.25.1 h1:Ummug+ZSoxHjnlV4kx2+dFR0w+1YftWbKuWyg0EpFtw=
 github.com/tinywasm/fmt v0.25.1/go.mod h1:L2GCAi6asgytPV6TVvGrRq5Ml+DkUt1Ijo5i/2J1jOY=
 github.com/tinywasm/model v0.0.8 h1:ReyBYZraFVL55m8/TPOnv5YgGcWNEDquka0x9q9EyvQ=
 github.com/tinywasm/model v0.0.8/go.mod h1:af3eNGmQA/BMVjMqMUXVgL0B8+NMTwlc6h7TpdEggTo=
-github.com/tinywasm/orm v0.9.26 h1:PtB+KBwrSONljYtvPdiuHxSNu1tkuCzBSlvNhBEtbm0=
-github.com/tinywasm/orm v0.9.26/go.mod h1:3Iryaj3wHEVc15nvWLYD+f2rANYgOFx/85Gu797BGAY=
 github.com/tinywasm/orm v0.9.27 h1:IJVh7BzbqabSUmHC/VbLHscdSA6I23DsTTygwYIg2DY=
 github.com/tinywasm/orm v0.9.27/go.mod h1:oyZEPhmfemnkn8dVkL8iAhTpy/2z7q//lObU1+qTc0s=

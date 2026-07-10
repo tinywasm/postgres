@@ -5,6 +5,7 @@ import "github.com/tinywasm/model"
 import (
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
+	"github.com/tinywasm/ddlc"
 )
 
 // translate converts an ORM query to a PostgreSQL query and arguments.
@@ -24,10 +25,10 @@ func postgresType(t model.FieldType) string {
 }
 
 func postgresColumnType(f model.Field) string {
-	if f.Type == model.FieldText && f.Permitted.Maximum > 0 {
+	if f.Type.Storage() == model.FieldText && f.Permitted.Maximum > 0 {
 		return fmt.Sprintf("VARCHAR(%d)", f.Permitted.Maximum)
 	}
-	return postgresType(f.Type)
+	return postgresType(f.Type.Storage())
 }
 
 func onDeleteSQL(action string) string {
@@ -152,12 +153,12 @@ func translate(q orm.Query, m model.Model) (string, []any, error) {
 			isPK := f.IsPK()
 			isAuto := f.IsAutoInc()
 			if isPK && isAuto && !compositePK {
-				if f.Type == model.FieldInt {
+				if f.Type.Storage() == model.FieldInt {
 					sb.Write("BIGSERIAL")
 				} else {
 					sb.Write("SERIAL")
 				}
-			} else if isAuto && f.Type == model.FieldInt {
+			} else if isAuto && f.Type.Storage() == model.FieldInt {
 				sb.Write("BIGSERIAL")
 			} else if isAuto {
 				sb.Write("SERIAL")
@@ -182,10 +183,10 @@ func translate(q orm.Query, m model.Model) (string, []any, error) {
 		if compositePK {
 			sb.Write(fmt.Sprintf(", PRIMARY KEY (%s)", fmt.Convert(pkCols).Join(", ").String()))
 		}
-		// orm.FieldExt is used for FKs. Since m.Schema() returns []model.Field,
+		// ddlc.FieldExt is used for FKs. Since m.Schema() returns []model.Field,
 		// we need to check if the implementation provided FieldExt.
 		// In tinywasm/orm, models that have FKs can optionally implement an extended schema.
-		if ext, ok := m.(interface{ SchemaExt() []orm.FieldExt }); ok {
+		if ext, ok := m.(interface{ SchemaExt() []ddlc.FieldExt }); ok {
 			for _, f := range ext.SchemaExt() {
 				if f.Ref != "" {
 					refCol := f.RefColumn
@@ -213,7 +214,7 @@ func translate(q orm.Query, m model.Model) (string, []any, error) {
 		sb.Write(" ADD COLUMN IF NOT EXISTS ")
 		sb.Write(q.Column.Name)
 		sb.Write(" ")
-		sb.Write(postgresType(q.Column.Type))
+		sb.Write(postgresType(q.Column.Type.Storage()))
 
 	case orm.ActionRenameColumn:
 		if q.Column == nil || q.OldName == "" || q.Table == "" {

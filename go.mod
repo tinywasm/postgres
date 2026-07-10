@@ -8,3 +8,5 @@ require (
 	github.com/tinywasm/model v0.0.8
 	github.com/tinywasm/orm v0.9.27
 )
+
+require github.com/tinywasm/ddlc v0.0.2
