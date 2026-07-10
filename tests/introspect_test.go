@@ -20,7 +20,7 @@ func TestIntrospection(t *testing.T) {
 	}
 	defer db.Close()
 
-	executor := db.RawExecutor().(orm.Executor)
+	executor := db.RawExecutor()
 
 	// 1. Setup a test table
 	err = executor.Exec("DROP TABLE IF EXISTS test_introspect")
