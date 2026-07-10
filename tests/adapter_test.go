@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/tinywasm/orm"
+	"github.com/tinywasm/ddlc"
 	"github.com/tinywasm/postgres"
 )
 
@@ -24,9 +25,9 @@ func (u *User) ModelName() string {
 
 func (u *User) Schema() []model.Field {
 	return []model.Field{
-		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
-		{Name: "name", Type: model.FieldText},
-		{Name: "email", Type: model.FieldText},
+		{Name: "id", Type: model.Int(), DB: &model.FieldDB{PK: true, AutoInc: true}},
+		{Name: "name", Type: model.Text()},
+		{Name: "email", Type: model.Text()},
 	}
 }
 
@@ -51,9 +52,9 @@ type MockModelExt struct {
 	MockModel
 }
 
-func (m *MockModelExt) SchemaExt() []orm.FieldExt {
-	return []orm.FieldExt{
-		{Field: model.Field{Name: "user_id", Type: model.FieldInt}, Ref: "users", RefColumn: "id"},
+func (m *MockModelExt) SchemaExt() []ddlc.FieldExt {
+	return []ddlc.FieldExt{
+		{Field: model.Field{Name: "user_id", Type: model.Int()}, Ref: "users", RefColumn: "id"},
 	}
 }
 
@@ -259,12 +260,12 @@ func TestPostgresAdapter(t *testing.T) {
 		Data   []byte
 	}
 	itemSchema := []model.Field{
-		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}}, // we use BIGSERIAL for FieldInt if PK/AutoInc
-		{Name: "user_id", Type: model.FieldInt},
-		{Name: "name", Type: model.FieldText, NotNull: true, DB: &model.FieldDB{Unique: true}},
-		{Name: "price", Type: model.FieldFloat},
-		{Name: "active", Type: model.FieldBool},
-		{Name: "data", Type: model.FieldBlob},
+		{Name: "id", Type: model.Int(), DB: &model.FieldDB{PK: true, AutoInc: true}}, // we use BIGSERIAL for FieldInt if PK/AutoInc
+		{Name: "user_id", Type: model.Int()},
+		{Name: "name", Type: model.Text(), NotNull: true, DB: &model.FieldDB{Unique: true}},
+		{Name: "price", Type: model.Float()},
+		{Name: "active", Type: model.Bool()},
+		{Name: "data", Type: model.Blob()},
 	}
 	// override Schema
 	// Since we can't easily override schema on struct literal without defining it properly, we'll just mock it.

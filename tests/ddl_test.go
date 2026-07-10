@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/tinywasm/orm"
+	"github.com/tinywasm/ddlc"
 	"github.com/tinywasm/postgres"
 )
 
@@ -21,8 +21,8 @@ func (m *MinimalModel) ModelName() string {
 
 func (m *MinimalModel) Schema() []model.Field {
 	return []model.Field{
-		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
-		{Name: "name", Type: model.FieldText, NotNull: true, DB: &model.FieldDB{Unique: true}},
+		{Name: "id", Type: model.Int(), DB: &model.FieldDB{PK: true, AutoInc: true}},
+		{Name: "name", Type: model.Text(), NotNull: true, DB: &model.FieldDB{Unique: true}},
 	}
 }
 
@@ -45,13 +45,13 @@ func (r *RelatedModel) ModelName() string {
 
 func (r *RelatedModel) Schema() []model.Field {
 	return []model.Field{
-		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
-		{Name: "minimal_id", Type: model.FieldInt},
+		{Name: "id", Type: model.Int(), DB: &model.FieldDB{PK: true, AutoInc: true}},
+		{Name: "minimal_id", Type: model.Int()},
 	}
 }
 
-func (r *RelatedModel) SchemaExt() []orm.FieldExt {
-	return []orm.FieldExt{
+func (r *RelatedModel) SchemaExt() []ddlc.FieldExt {
+	return []ddlc.FieldExt{
 		{Field: model.Field{Name: "minimal_id"}, Ref: "minimal_models", RefColumn: "id"},
 	}
 }

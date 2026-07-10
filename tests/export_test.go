@@ -9,8 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tinywasm/orm"
-	"github.com/tinywasm/orm/ddl"
+	"github.com/tinywasm/ddlc"
 	"github.com/tinywasm/postgres"
 )
 
@@ -19,12 +18,12 @@ type userModel struct{}
 func (m *userModel) ModelName() string { return "users" }
 func (m *userModel) Schema() []model.Field {
 	return []model.Field{
-		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
-		{Name: "username", Type: model.FieldText, NotNull: true, Permitted: model.Permitted{Maximum: 50}, DB: &model.FieldDB{Unique: true}},
-		{Name: "email", Type: model.FieldText, NotNull: true, DB: &model.FieldDB{Unique: true}},
-		{Name: "score", Type: model.FieldFloat},
-		{Name: "active", Type: model.FieldBool},
-		{Name: "avatar", Type: model.FieldBlob},
+		{Name: "id", Type: model.Int(), DB: &model.FieldDB{PK: true, AutoInc: true}},
+		{Name: "username", Type: model.Text(), NotNull: true, Permitted: model.Permitted{Maximum: 50}, DB: &model.FieldDB{Unique: true}},
+		{Name: "email", Type: model.Text(), NotNull: true, DB: &model.FieldDB{Unique: true}},
+		{Name: "score", Type: model.Float()},
+		{Name: "active", Type: model.Bool()},
+		{Name: "avatar", Type: model.Blob()},
 	}
 }
 func (m *userModel) Pointers() []any { return nil }
@@ -34,8 +33,8 @@ type roleModel struct{}
 func (m *roleModel) ModelName() string { return "roles" }
 func (m *roleModel) Schema() []model.Field {
 	return []model.Field{
-		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
-		{Name: "name", Type: model.FieldText, NotNull: true, Permitted: model.Permitted{Maximum: 100}, DB: &model.FieldDB{Unique: true}},
+		{Name: "id", Type: model.Int(), DB: &model.FieldDB{PK: true, AutoInc: true}},
+		{Name: "name", Type: model.Text(), NotNull: true, Permitted: model.Permitted{Maximum: 100}, DB: &model.FieldDB{Unique: true}},
 	}
 }
 func (m *roleModel) Pointers() []any { return nil }
@@ -45,13 +44,13 @@ type sessionModel struct{}
 func (m *sessionModel) ModelName() string { return "sessions" }
 func (m *sessionModel) Schema() []model.Field {
 	return []model.Field{
-		{Name: "id", Type: model.FieldText, DB: &model.FieldDB{PK: true}},
-		{Name: "user_id", Type: model.FieldInt},
-		{Name: "metadata", Type: model.FieldText},
+		{Name: "id", Type: model.Text(), DB: &model.FieldDB{PK: true}},
+		{Name: "user_id", Type: model.Int()},
+		{Name: "metadata", Type: model.Text()},
 	}
 }
-func (m *sessionModel) SchemaExt() []orm.FieldExt {
-	return []orm.FieldExt{
+func (m *sessionModel) SchemaExt() []ddlc.FieldExt {
+	return []ddlc.FieldExt{
 		{Field: model.Field{Name: "user_id"}, Ref: "users"},
 	}
 }
@@ -62,12 +61,12 @@ type userRoleModel struct{}
 func (m *userRoleModel) ModelName() string { return "user_roles" }
 func (m *userRoleModel) Schema() []model.Field {
 	return []model.Field{
-		{Name: "user_id", Type: model.FieldInt, DB: &model.FieldDB{PK: true}},
-		{Name: "role_id", Type: model.FieldInt, DB: &model.FieldDB{PK: true}},
+		{Name: "user_id", Type: model.Int(), DB: &model.FieldDB{PK: true}},
+		{Name: "role_id", Type: model.Int(), DB: &model.FieldDB{PK: true}},
 	}
 }
-func (m *userRoleModel) SchemaExt() []orm.FieldExt {
-	return []orm.FieldExt{
+func (m *userRoleModel) SchemaExt() []ddlc.FieldExt {
+	return []ddlc.FieldExt{
 		{Field: model.Field{Name: "user_id"}, Ref: "users"},
 		{Field: model.Field{Name: "role_id"}, Ref: "roles"},
 	}
@@ -129,5 +128,5 @@ func TestExportDDL_EmptyInput(t *testing.T) {
 }
 
 func TestExportDDL_ImplementsInterface(t *testing.T) {
-	var _ ddl.Exporter = postgres.NewCompiler()
+	var _ ddlc.Exporter = postgres.NewCompiler()
 }

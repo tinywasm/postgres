@@ -4,10 +4,10 @@ import (
 	"github.com/tinywasm/model"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
-	"github.com/tinywasm/orm/ddl"
+	"github.com/tinywasm/ddlc"
 )
 
-// Compiler implements the orm.Compiler and ddl.Exporter interfaces for PostgreSQL.
+// Compiler implements the orm.Compiler and ddlc.Exporter interfaces for PostgreSQL.
 type Compiler struct{}
 
 // NewCompiler creates a new Compiler instance.
@@ -29,7 +29,7 @@ func (c *Compiler) Compile(q orm.Query, m model.Model) (orm.Plan, error) {
 
 // ExportDDL generates a full DDL string for the given models.
 func (c *Compiler) ExportDDL(models []model.Model) (string, error) {
-	sorted, err := ddl.TopologicalSort(models)
+	sorted, err := ddlc.TopologicalSort(models)
 	if err != nil {
 		return "", err
 	}
@@ -50,7 +50,7 @@ func (c *Compiler) ExportDDL(models []model.Model) (string, error) {
 		buf.Write(";\n\n")
 
 		// Auto-index on FK columns
-		if ext, ok := m.(interface{ SchemaExt() []orm.FieldExt }); ok {
+		if ext, ok := m.(interface{ SchemaExt() []ddlc.FieldExt }); ok {
 			for _, f := range ext.SchemaExt() {
 				if f.Ref != "" {
 					buf.Write(fmt.Sprintf(
@@ -64,6 +64,6 @@ func (c *Compiler) ExportDDL(models []model.Model) (string, error) {
 	return buf.String(), nil
 }
 
-// Ensure Compiler implements ddl.Exporter and orm.Compiler.
-var _ ddl.Exporter = (*Compiler)(nil)
+// Ensure Compiler implements ddlc.Exporter and orm.Compiler.
+var _ ddlc.Exporter = (*Compiler)(nil)
 var _ orm.Compiler = (*Compiler)(nil)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/orm"
+	"github.com/tinywasm/ddlc"
 	"github.com/tinywasm/postgres"
 )
 
@@ -22,9 +23,9 @@ type testUserModel struct {
 func (u *testUserModel) ModelName() string { return "users" }
 func (u *testUserModel) Schema() []model.Field {
 	return []model.Field{
-		{Name: "id", Type: model.FieldText, DB: &model.FieldDB{PK: true}},
-		{Name: "name", Type: model.FieldText},
-		{Name: "age", Type: model.FieldInt},
+		{Name: "id", Type: model.Text(), DB: &model.FieldDB{PK: true}},
+		{Name: "name", Type: model.Text()},
+		{Name: "age", Type: model.Int()},
 	}
 }
 func (u *testUserModel) Pointers() []any { return []any{&u.ID, &u.Name, &u.Age} }
@@ -76,9 +77,9 @@ type varcharModel struct{}
 func (m *varcharModel) ModelName() string { return "varchars" }
 func (m *varcharModel) Schema() []model.Field {
 	return []model.Field{
-		{Name: "username", Type: model.FieldText, Permitted: model.Permitted{Maximum: 100}},
-		{Name: "email", Type: model.FieldText},
-		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true, AutoInc: true}},
+		{Name: "username", Type: model.Text(), Permitted: model.Permitted{Maximum: 100}},
+		{Name: "email", Type: model.Text()},
+		{Name: "id", Type: model.Int(), DB: &model.FieldDB{PK: true, AutoInc: true}},
 	}
 }
 func (m *varcharModel) Pointers() []any { return nil }
@@ -107,13 +108,13 @@ type onDeleteModel struct{}
 func (m *onDeleteModel) ModelName() string { return "on_deletes" }
 func (m *onDeleteModel) Schema() []model.Field {
 	return []model.Field{
-		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true}},
-		{Name: "user_id", Type: model.FieldInt},
-		{Name: "role_id", Type: model.FieldInt},
+		{Name: "id", Type: model.Int(), DB: &model.FieldDB{PK: true}},
+		{Name: "user_id", Type: model.Int()},
+		{Name: "role_id", Type: model.Int()},
 	}
 }
-func (m *onDeleteModel) SchemaExt() []orm.FieldExt {
-	return []orm.FieldExt{
+func (m *onDeleteModel) SchemaExt() []ddlc.FieldExt {
+	return []ddlc.FieldExt{
 		{Field: model.Field{Name: "user_id"}, Ref: "users", OnDelete: "restrict"},
 		{Field: model.Field{Name: "role_id"}, Ref: "roles"}, // Default CASCADE
 	}
@@ -148,7 +149,7 @@ func TestOnDelete_Postgres(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		m2Ext := []orm.FieldExt{
+		m2Ext := []ddlc.FieldExt{
 			{Field: model.Field{Name: "user_id"}, Ref: "users", OnDelete: c.action},
 		}
 		// We need a model that returns these SchemaExt
@@ -160,18 +161,18 @@ func TestOnDelete_Postgres(t *testing.T) {
 }
 
 type mockOnDeleteModel struct {
-	ext []orm.FieldExt
+	ext []ddlc.FieldExt
 }
 
 func (m *mockOnDeleteModel) ModelName() string { return "on_deletes" }
 func (m *mockOnDeleteModel) Schema() []model.Field {
 	return []model.Field{
-		{Name: "id", Type: model.FieldInt, DB: &model.FieldDB{PK: true}},
-		{Name: "user_id", Type: model.FieldInt},
+		{Name: "id", Type: model.Int(), DB: &model.FieldDB{PK: true}},
+		{Name: "user_id", Type: model.Int()},
 	}
 }
-func (m *mockOnDeleteModel) SchemaExt() []orm.FieldExt { return m.ext }
-func (m *mockOnDeleteModel) Pointers() []any          { return nil }
+func (m *mockOnDeleteModel) SchemaExt() []ddlc.FieldExt { return m.ext }
+func (m *mockOnDeleteModel) Pointers() []any           { return nil }
 
 // TestTranslate_Update_MultipleConditions verifies that AND conditions in an
 // UPDATE query produce correct SQL.
