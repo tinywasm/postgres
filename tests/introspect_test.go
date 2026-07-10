@@ -11,7 +11,7 @@ import (
 func TestIntrospection(t *testing.T) {
 	dsn := os.Getenv("POSTGRES_DSN")
 	if dsn == "" {
-		dsn = "postgres://postgres:password@localhost:5432/postgres?sslmode=disable"
+		dsn = "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
 	}
 
 	db, err := postgres.New(dsn)
