@@ -1,9 +1,12 @@
 package postgres
 
-import "github.com/tinywasm/orm"
+import (
+	"github.com/tinywasm/ddl"
+	"github.com/tinywasm/storage"
+)
 
 type querier interface {
-	Query(query string, args ...any) (orm.Rows, error)
+	Query(query string, args ...any) (storage.Rows, error)
 }
 
 func tables(q querier) ([]string, error) {
@@ -19,18 +22,18 @@ func tables(q querier) ([]string, error) {
 	}
 	defer rows.Close()
 
-	var tables []string
+	var tbls []string
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
 			return nil, err
 		}
-		tables = append(tables, name)
+		tbls = append(tbls, name)
 	}
-	return tables, rows.Err()
+	return tbls, rows.Err()
 }
 
-func columns(q querier, table string) ([]orm.ColumnInfo, error) {
+func columns(q querier, table string) ([]ddl.ColumnInfo, error) {
 	rows, err := q.Query(`
         SELECT
             c.column_name,
@@ -58,9 +61,9 @@ func columns(q querier, table string) ([]orm.ColumnInfo, error) {
 	}
 	defer rows.Close()
 
-	var cols []orm.ColumnInfo
+	var cols []ddl.ColumnInfo
 	for rows.Next() {
-		var col orm.ColumnInfo
+		var col ddl.ColumnInfo
 		var notNull, pk bool
 		if err := rows.Scan(&col.Name, &col.Type, &notNull, &pk); err != nil {
 			return nil, err
@@ -78,9 +81,9 @@ func (p *PostgresAdapter) Tables() ([]string, error) {
 }
 
 // Columns returns full column metadata for the given table.
-func (p *PostgresAdapter) Columns(table string) ([]orm.ColumnInfo, error) {
+func (p *PostgresAdapter) Columns(table string) ([]ddl.ColumnInfo, error) {
 	return columns(p, table)
 }
 
-// Ensure PostgresAdapter implements orm.SchemaInspector
-var _ orm.SchemaInspector = (*PostgresAdapter)(nil)
+// Ensure PostgresAdapter implements ddl.SchemaInspector
+var _ ddl.SchemaInspector = (*PostgresAdapter)(nil)

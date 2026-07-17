@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tinywasm/ddlc"
 	"github.com/tinywasm/postgres"
 )
 
@@ -27,6 +26,9 @@ func (m *userModel) Schema() []model.Field {
 	}
 }
 func (m *userModel) Pointers() []any { return nil }
+func (m *userModel) EncodeFields(w model.FieldWriter) {}
+func (m *userModel) DecodeFields(r model.FieldReader) {}
+func (m *userModel) IsNil() bool { return m == nil }
 
 type roleModel struct{}
 
@@ -38,6 +40,9 @@ func (m *roleModel) Schema() []model.Field {
 	}
 }
 func (m *roleModel) Pointers() []any { return nil }
+func (m *roleModel) EncodeFields(w model.FieldWriter) {}
+func (m *roleModel) DecodeFields(r model.FieldReader) {}
+func (m *roleModel) IsNil() bool { return m == nil }
 
 type sessionModel struct{}
 
@@ -49,12 +54,15 @@ func (m *sessionModel) Schema() []model.Field {
 		{Name: "metadata", Type: model.Text()},
 	}
 }
-func (m *sessionModel) SchemaExt() []ddlc.FieldExt {
-	return []ddlc.FieldExt{
+func (m *sessionModel) SchemaExt() []model.FieldExt {
+	return []model.FieldExt{
 		{Field: model.Field{Name: "user_id"}, Ref: "users"},
 	}
 }
 func (m *sessionModel) Pointers() []any { return nil }
+func (m *sessionModel) EncodeFields(w model.FieldWriter) {}
+func (m *sessionModel) DecodeFields(r model.FieldReader) {}
+func (m *sessionModel) IsNil() bool { return m == nil }
 
 type userRoleModel struct{}
 
@@ -65,13 +73,16 @@ func (m *userRoleModel) Schema() []model.Field {
 		{Name: "role_id", Type: model.Int(), DB: &model.FieldDB{PK: true}},
 	}
 }
-func (m *userRoleModel) SchemaExt() []ddlc.FieldExt {
-	return []ddlc.FieldExt{
+func (m *userRoleModel) SchemaExt() []model.FieldExt {
+	return []model.FieldExt{
 		{Field: model.Field{Name: "user_id"}, Ref: "users"},
 		{Field: model.Field{Name: "role_id"}, Ref: "roles"},
 	}
 }
 func (m *userRoleModel) Pointers() []any { return nil }
+func (m *userRoleModel) EncodeFields(w model.FieldWriter) {}
+func (m *userRoleModel) DecodeFields(r model.FieldReader) {}
+func (m *userRoleModel) IsNil() bool { return m == nil }
 
 func TestExportDDL_FullSchema(t *testing.T) {
 	goldenRaw, err := os.ReadFile("schema.sql")
@@ -128,5 +139,7 @@ func TestExportDDL_EmptyInput(t *testing.T) {
 }
 
 func TestExportDDL_ImplementsInterface(t *testing.T) {
-	var _ ddlc.Exporter = postgres.NewCompiler()
+	var _ interface {
+		ExportDDL(models []model.Model) (string, error)
+	} = postgres.NewCompiler()
 }

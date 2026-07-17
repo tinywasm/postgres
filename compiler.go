@@ -1,13 +1,12 @@
 package postgres
 
 import (
-	"github.com/tinywasm/model"
+	"github.com/tinywasm/ddl"
 	"github.com/tinywasm/fmt"
-	"github.com/tinywasm/orm"
-	"github.com/tinywasm/ddlc"
+	"github.com/tinywasm/model"
 )
 
-// Compiler implements the orm.Compiler and ddlc.Exporter interfaces for PostgreSQL.
+// Compiler implements ddl.Compiler and exposes ExportDDL for PostgreSQL DDL generation tooling.
 type Compiler struct{}
 
 // NewCompiler creates a new Compiler instance.
@@ -15,21 +14,14 @@ func NewCompiler() *Compiler {
 	return &Compiler{}
 }
 
-// Compile compiles an ORM query into a Plan.
-func (c *Compiler) Compile(q orm.Query, m model.Model) (orm.Plan, error) {
-	query, args, err := Translate(q, m)
-	if err != nil {
-		return orm.Plan{}, err
-	}
-	return orm.Plan{
-		Query: query,
-		Args:  args,
-	}, nil
+// CompileDDL compiles a DDL statement.
+func (c *Compiler) CompileDDL(s ddl.Stmt, m model.Model) (string, []any, error) {
+	return translateDDL(s, m)
 }
 
 // ExportDDL generates a full DDL string for the given models.
 func (c *Compiler) ExportDDL(models []model.Model) (string, error) {
-	sorted, err := ddlc.TopologicalSort(models)
+	sorted, err := ddl.TopologicalSort(models)
 	if err != nil {
 		return "", err
 	}
@@ -38,19 +30,19 @@ func (c *Compiler) ExportDDL(models []model.Model) (string, error) {
 	buf.Write("-- dialect: postgres\n\n")
 
 	for _, m := range sorted {
-		q := orm.Query{
-			Action: orm.ActionCreateTable,
-			Table:  m.ModelName(),
+		stmt := ddl.Stmt{
+			Op:    ddl.OpCreateTable,
+			Table: m.ModelName(),
 		}
-		plan, err := c.Compile(q, m)
+		query, _, err := c.CompileDDL(stmt, m)
 		if err != nil {
 			return "", err
 		}
-		buf.Write(plan.Query)
+		buf.Write(query)
 		buf.Write(";\n\n")
 
 		// Auto-index on FK columns
-		if ext, ok := m.(interface{ SchemaExt() []ddlc.FieldExt }); ok {
+		if ext, ok := m.(interface{ SchemaExt() []model.FieldExt }); ok {
 			for _, f := range ext.SchemaExt() {
 				if f.Ref != "" {
 					buf.Write(fmt.Sprintf(
@@ -64,6 +56,5 @@ func (c *Compiler) ExportDDL(models []model.Model) (string, error) {
 	return buf.String(), nil
 }
 
-// Ensure Compiler implements ddlc.Exporter and orm.Compiler.
-var _ ddlc.Exporter = (*Compiler)(nil)
-var _ orm.Compiler = (*Compiler)(nil)
+// Ensure Compiler implements ddl.Compiler.
+var _ ddl.Compiler = (*Compiler)(nil)

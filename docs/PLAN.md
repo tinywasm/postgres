@@ -1,8 +1,9 @@
 ---
 PLAN: "refactor!: postgres implementa storage.Conn + ddl.Compiler (contrato movido de orm a tinywasm/storage)"
 TAG: v0.4.0
-STATUS: running
+STATUS: review
 SESSION: 13716118547241455738
+PR: https://github.com/tinywasm/postgres/pull/16
 ---
 
 # PLAN — `tinywasm/postgres`: migrar de `orm.Compiler`/`orm.Executor` a `storage.Conn` + `ddl.Compiler`
