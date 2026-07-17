@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/ddlc"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/model"
 	"github.com/tinywasm/storage"
@@ -46,8 +45,8 @@ func (m *cyclicModelA) ModelName() string { return "cyclic_a" }
 func (m *cyclicModelA) Schema() []model.Field {
 	return []model.Field{{Name: "id", Type: model.Int(), DB: &model.FieldDB{PK: true}}}
 }
-func (m *cyclicModelA) SchemaExt() []ddlc.FieldExt {
-	return []ddlc.FieldExt{{Field: model.Field{Name: "b_id"}, Ref: "cyclic_b"}}
+func (m *cyclicModelA) SchemaExt() []model.FieldExt {
+	return []model.FieldExt{{Field: model.Field{Name: "b_id"}, Ref: "cyclic_b"}}
 }
 func (m *cyclicModelA) Pointers() []any                       { return nil }
 func (m *cyclicModelA) EncodeFields(w model.FieldWriter)      {}
@@ -60,8 +59,8 @@ func (m *cyclicModelB) ModelName() string { return "cyclic_b" }
 func (m *cyclicModelB) Schema() []model.Field {
 	return []model.Field{{Name: "id", Type: model.Int(), DB: &model.FieldDB{PK: true}}}
 }
-func (m *cyclicModelB) SchemaExt() []ddlc.FieldExt {
-	return []ddlc.FieldExt{{Field: model.Field{Name: "a_id"}, Ref: "cyclic_a"}}
+func (m *cyclicModelB) SchemaExt() []model.FieldExt {
+	return []model.FieldExt{{Field: model.Field{Name: "a_id"}, Ref: "cyclic_a"}}
 }
 func (m *cyclicModelB) Pointers() []any                       { return nil }
 func (m *cyclicModelB) EncodeFields(w model.FieldWriter)      {}

@@ -2,12 +2,11 @@ package postgres
 
 import (
 	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/ddlc"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/model"
 )
 
-// Compiler implements the ddl.Compiler and ddlc.Exporter interfaces for PostgreSQL.
+// Compiler implements ddl.Compiler and exposes ExportDDL for PostgreSQL DDL generation tooling.
 type Compiler struct{}
 
 // NewCompiler creates a new Compiler instance.
@@ -22,7 +21,7 @@ func (c *Compiler) CompileDDL(s ddl.Stmt, m model.Model) (string, []any, error) 
 
 // ExportDDL generates a full DDL string for the given models.
 func (c *Compiler) ExportDDL(models []model.Model) (string, error) {
-	sorted, err := ddlc.TopologicalSort(models)
+	sorted, err := ddl.TopologicalSort(models)
 	if err != nil {
 		return "", err
 	}
@@ -43,7 +42,7 @@ func (c *Compiler) ExportDDL(models []model.Model) (string, error) {
 		buf.Write(";\n\n")
 
 		// Auto-index on FK columns
-		if ext, ok := m.(interface{ SchemaExt() []ddlc.FieldExt }); ok {
+		if ext, ok := m.(interface{ SchemaExt() []model.FieldExt }); ok {
 			for _, f := range ext.SchemaExt() {
 				if f.Ref != "" {
 					buf.Write(fmt.Sprintf(
@@ -57,6 +56,5 @@ func (c *Compiler) ExportDDL(models []model.Model) (string, error) {
 	return buf.String(), nil
 }
 
-// Ensure Compiler implements ddl.Compiler and ddlc.Exporter.
+// Ensure Compiler implements ddl.Compiler.
 var _ ddl.Compiler = (*Compiler)(nil)
-var _ ddlc.Exporter = (*Compiler)(nil)

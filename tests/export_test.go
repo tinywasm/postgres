@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/tinywasm/ddlc"
 	"github.com/tinywasm/postgres"
 )
 
@@ -55,8 +54,8 @@ func (m *sessionModel) Schema() []model.Field {
 		{Name: "metadata", Type: model.Text()},
 	}
 }
-func (m *sessionModel) SchemaExt() []ddlc.FieldExt {
-	return []ddlc.FieldExt{
+func (m *sessionModel) SchemaExt() []model.FieldExt {
+	return []model.FieldExt{
 		{Field: model.Field{Name: "user_id"}, Ref: "users"},
 	}
 }
@@ -74,8 +73,8 @@ func (m *userRoleModel) Schema() []model.Field {
 		{Name: "role_id", Type: model.Int(), DB: &model.FieldDB{PK: true}},
 	}
 }
-func (m *userRoleModel) SchemaExt() []ddlc.FieldExt {
-	return []ddlc.FieldExt{
+func (m *userRoleModel) SchemaExt() []model.FieldExt {
+	return []model.FieldExt{
 		{Field: model.Field{Name: "user_id"}, Ref: "users"},
 		{Field: model.Field{Name: "role_id"}, Ref: "roles"},
 	}
@@ -140,5 +139,7 @@ func TestExportDDL_EmptyInput(t *testing.T) {
 }
 
 func TestExportDDL_ImplementsInterface(t *testing.T) {
-	var _ ddlc.Exporter = postgres.NewCompiler()
+	var _ interface {
+		ExportDDL(models []model.Model) (string, error)
+	} = postgres.NewCompiler()
 }
