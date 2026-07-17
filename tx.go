@@ -4,8 +4,9 @@ import (
 	"context"
 	"database/sql"
 
+	"github.com/tinywasm/ddl"
 	"github.com/tinywasm/model"
-	"github.com/tinywasm/orm"
+	"github.com/tinywasm/storage"
 )
 
 // PostgresTx wraps a SQL transaction.
@@ -14,15 +15,20 @@ type PostgresTx struct {
 	adapter *PostgresAdapter
 }
 
-// Ensure PostgresTx implements orm.Compiler.
-var _ orm.Compiler = (*PostgresTx)(nil)
+// Ensure PostgresTx implements ddl.Compiler.
+var _ ddl.Compiler = (*PostgresTx)(nil)
 
-// Ensure PostgresTx implements orm.Executor.
-var _ orm.Executor = (*PostgresTx)(nil)
+// Ensure PostgresTx implements storage.Conn.
+var _ storage.Conn = (*PostgresTx)(nil)
 
 // Compile delegates to the PostgresAdapter.
-func (p *PostgresTx) Compile(q orm.Query, m model.Model) (orm.Plan, error) {
+func (p *PostgresTx) Compile(q storage.Query, m model.Model) (storage.Plan, error) {
 	return p.adapter.Compile(q, m)
+}
+
+// CompileDDL delegates to translateDDL.
+func (p *PostgresTx) CompileDDL(s ddl.Stmt, m model.Model) (string, []any, error) {
+	return translateDDL(s, m)
 }
 
 // Exec executes a query within the transaction.
@@ -32,17 +38,16 @@ func (p *PostgresTx) Exec(query string, args ...any) error {
 }
 
 // QueryRow executes a query that is expected to return at most one row within the transaction.
-func (p *PostgresTx) QueryRow(query string, args ...any) orm.Scanner {
-	return errScanner{p.tx.QueryRow(query, args...)}
+func (p *PostgresTx) QueryRow(query string, args ...any) storage.Scanner {
+	return &errScanner{s: p.tx.QueryRow(query, args...)}
 }
 
 // Query executes a query that returns rows within the transaction.
-func (p *PostgresTx) Query(query string, args ...any) (orm.Rows, error) {
+func (p *PostgresTx) Query(query string, args ...any) (storage.Rows, error) {
 	return p.tx.Query(query, args...)
 }
 
-// Close is a no-op for generic Executor but here we could rollback if active.
-// We let orm.DB handle transaction lifecycle.
+// Close is a no-op for storage.Conn in this context.
 func (p *PostgresTx) Close() error {
 	return nil
 }
@@ -68,15 +73,15 @@ func (p *PostgresTx) Tables() ([]string, error) {
 }
 
 // Columns returns full column metadata for the given table.
-func (p *PostgresTx) Columns(table string) ([]orm.ColumnInfo, error) {
+func (p *PostgresTx) Columns(table string) ([]ddl.ColumnInfo, error) {
 	return columns(p, table)
 }
 
-// Ensure PostgresTx implements orm.SchemaInspector
-var _ orm.SchemaInspector = (*PostgresTx)(nil)
+// Ensure PostgresTx implements ddl.SchemaInspector.
+var _ ddl.SchemaInspector = (*PostgresTx)(nil)
 
-// BeginTx starts a transaction and returns a new orm.TxBoundExecutor.
-func (p *PostgresAdapter) BeginTx() (orm.TxBoundExecutor, error) {
+// BeginTx starts a transaction and returns a new storage.TxBoundExecutor.
+func (p *PostgresAdapter) BeginTx() (storage.TxBoundExecutor, error) {
 	tx, err := p.db.BeginTx(context.Background(), nil)
 	if err != nil {
 		return nil, err

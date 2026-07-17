@@ -1,14 +1,13 @@
 package postgres
 
-import "github.com/tinywasm/model"
-
 import (
-	"github.com/tinywasm/fmt"
-	"github.com/tinywasm/orm"
+	"github.com/tinywasm/ddl"
 	"github.com/tinywasm/ddlc"
+	"github.com/tinywasm/fmt"
+	"github.com/tinywasm/model"
+	"github.com/tinywasm/storage"
 )
 
-// translate converts an ORM query to a PostgreSQL query and arguments.
 func postgresType(t model.FieldType) string {
 	switch t {
 	case model.FieldInt:
@@ -44,13 +43,14 @@ func onDeleteSQL(action string) string {
 	}
 }
 
-func translate(q orm.Query, m model.Model) (string, []any, error) {
+// translate converts a storage.Query (DML only) into Postgres SQL.
+func translate(q storage.Query, m model.Model) (string, []any, error) {
 	sb := fmt.Convert()
 	var args []any
 	argIndex := 1
 
 	switch q.Action {
-	case orm.ActionCreate:
+	case storage.ActionCreate:
 		sb.Write("INSERT INTO ")
 		sb.Write(q.Table)
 		sb.Write(" (")
@@ -65,17 +65,8 @@ func translate(q orm.Query, m model.Model) (string, []any, error) {
 			argIndex++
 		}
 		sb.Write(")")
-		// Append RETURNING id if it's likely expected, although not strictly in generic ORM spec.
-		// However, many ORMs rely on LastInsertId which Postgres doesn't support via Result.
-		// So we often need `RETURNING id`.
-		// Let's assume the user model has an 'id' column for now or handle it via Execute scan.
-		// If we don't add it here, `Execute` won't get it back.
-		// But generic `translate` shouldn't assume column names unless specified.
-		// The `orm` might handle ID assignment via UUIDs generated in Go, in which case RETURNING isn't needed.
-		// If the DB generates IDs (SERIAL/IDENTITY), we need it.
-		// Let's stick to standard INSERT for now. If tests fail on ID retrieval, we'll revisit.
 
-	case orm.ActionReadOne, orm.ActionReadAll:
+	case storage.ActionReadOne, storage.ActionReadAll:
 		sb.Write("SELECT ")
 		if len(q.Columns) == 0 {
 			sb.Write("*")
@@ -93,9 +84,9 @@ func translate(q orm.Query, m model.Model) (string, []any, error) {
 				if i > 0 {
 					sb.Write(", ")
 				}
-				sb.Write(o.Column()) // Changed from o.Field to o.Column()
+				sb.Write(o.Column())
 				sb.Write(" ")
-				sb.Write(o.Dir()) // Changed from checking o.Desc to o.Dir() which returns "ASC" or "DESC"
+				sb.Write(o.Dir())
 			}
 		}
 		if q.Limit > 0 {
@@ -105,37 +96,77 @@ func translate(q orm.Query, m model.Model) (string, []any, error) {
 			sb.Write(fmt.Sprintf(" OFFSET %d", q.Offset))
 		}
 
-	case orm.ActionUpdate:
+	case storage.ActionUpdate:
 		sb.Write("UPDATE ")
 		sb.Write(q.Table)
 		sb.Write(" SET ")
+
+		isPKCol := make(map[string]bool)
+		if m != nil {
+			for _, f := range m.Schema() {
+				if f.IsPK() || f.IsAutoInc() {
+					isPKCol[f.Name] = true
+				}
+			}
+		}
+
+		added := 0
 		for i, c := range q.Columns {
-			if i > 0 {
+			if isPKCol[c] {
+				continue
+			}
+			if added > 0 {
 				sb.Write(", ")
 			}
 			sb.Write(c)
 			sb.Write(fmt.Sprintf(" = $%d", argIndex))
 			args = append(args, q.Values[i])
 			argIndex++
+			added++
 		}
+
+		// Fallback to original behavior if no columns are left (should not happen for valid updates)
+		if added == 0 {
+			for i, c := range q.Columns {
+				if i > 0 {
+					sb.Write(", ")
+				}
+				sb.Write(c)
+				sb.Write(fmt.Sprintf(" = $%d", argIndex))
+				args = append(args, q.Values[i])
+				argIndex++
+			}
+		}
+
 		if err := buildConditions(sb, q.Conditions, &args, &argIndex); err != nil {
 			return "", nil, err
 		}
 
-	case orm.ActionDelete:
+	case storage.ActionDelete:
 		sb.Write("DELETE FROM ")
 		sb.Write(q.Table)
 		if err := buildConditions(sb, q.Conditions, &args, &argIndex); err != nil {
 			return "", nil, err
 		}
 
-	case orm.ActionCreateTable:
+	default:
+		return "", nil, fmt.Errf("postgres: unknown DML action: %v", q.Action)
+	}
+
+	return sb.String(), args, nil
+}
+
+// translateDDL converts a ddl.Stmt into Postgres SQL.
+func translateDDL(s ddl.Stmt, m model.Model) (string, []any, error) {
+	sb := fmt.Convert()
+
+	switch s.Op {
+	case ddl.OpCreateTable:
 		sb.Write("CREATE TABLE IF NOT EXISTS ")
-		sb.Write(q.Table)
+		sb.Write(s.Table)
 		sb.Write(" (")
 		fields := m.Schema()
 
-		// Count composite PK fields upfront to decide between inline and table-level PK.
 		var pkCols []string
 		for _, f := range fields {
 			if f.IsPK() {
@@ -167,7 +198,6 @@ func translate(q orm.Query, m model.Model) (string, []any, error) {
 			}
 			if isPK {
 				if compositePK {
-					// Composite PK: columns must be NOT NULL; constraint emitted as table-level below.
 					sb.Write(" NOT NULL")
 				} else {
 					sb.Write(" PRIMARY KEY")
@@ -183,9 +213,6 @@ func translate(q orm.Query, m model.Model) (string, []any, error) {
 		if compositePK {
 			sb.Write(fmt.Sprintf(", PRIMARY KEY (%s)", fmt.Convert(pkCols).Join(", ").String()))
 		}
-		// ddlc.FieldExt is used for FKs. Since m.Schema() returns []model.Field,
-		// we need to check if the implementation provided FieldExt.
-		// In tinywasm/orm, models that have FKs can optionally implement an extended schema.
 		if ext, ok := m.(interface{ SchemaExt() []ddlc.FieldExt }); ok {
 			for _, f := range ext.SchemaExt() {
 				if f.Ref != "" {
@@ -194,65 +221,65 @@ func translate(q orm.Query, m model.Model) (string, []any, error) {
 						refCol = "id"
 					}
 					sb.Write(fmt.Sprintf(", CONSTRAINT fk_%s_%s FOREIGN KEY (%s) REFERENCES %s(%s) ON DELETE %s",
-						q.Table, f.Name, f.Name, f.Ref, refCol, onDeleteSQL(f.OnDelete)))
+						s.Table, f.Name, f.Name, f.Ref, refCol, onDeleteSQL(f.OnDelete)))
 				}
 			}
 		}
-
 		sb.Write(")")
 
-	case orm.ActionDropTable:
+	case ddl.OpDropTable:
 		sb.Write("DROP TABLE IF EXISTS ")
-		sb.Write(q.Table)
+		sb.Write(s.Table)
 
-	case orm.ActionAddColumn:
-		if q.Column == nil || q.Table == "" {
+	case ddl.OpAddColumn:
+		if s.Column == nil || s.Table == "" {
 			return "", nil, fmt.Err("table and column required for add column")
 		}
 		sb.Write("ALTER TABLE ")
-		sb.Write(q.Table)
+		sb.Write(s.Table)
 		sb.Write(" ADD COLUMN IF NOT EXISTS ")
-		sb.Write(q.Column.Name)
+		sb.Write(s.Column.Name)
 		sb.Write(" ")
-		sb.Write(postgresType(q.Column.Type.Storage()))
+		sb.Write(postgresType(s.Column.Type.Storage()))
 
-	case orm.ActionRenameColumn:
-		if q.Column == nil || q.OldName == "" || q.Table == "" {
+	case ddl.OpRenameColumn:
+		if s.Column == nil || s.OldName == "" || s.Table == "" {
 			return "", nil, fmt.Err("table, old name and column required for rename")
 		}
 		sb.Write("ALTER TABLE ")
-		sb.Write(q.Table)
+		sb.Write(s.Table)
 		sb.Write(" RENAME COLUMN ")
-		sb.Write(q.OldName)
+		sb.Write(s.OldName)
 		sb.Write(" TO ")
-		sb.Write(q.Column.Name)
+		sb.Write(s.Column.Name)
 
-	case orm.ActionDropColumn:
-		if q.Table == "" || len(q.Columns) == 0 {
-			return "", nil, fmt.Err("table and column required for drop column")
+	case ddl.OpDropColumn:
+		if s.Table == "" || s.ColumnName == "" {
+			return "", nil, fmt.Err("table and column name required for drop column")
 		}
 		sb.Write("ALTER TABLE ")
-		sb.Write(q.Table)
+		sb.Write(s.Table)
 		sb.Write(" DROP COLUMN IF EXISTS ")
-		sb.Write(q.Columns[0])
-
-	case orm.ActionCreateDatabase:
-		sb.Write("CREATE DATABASE ")
-		sb.Write(q.Database)
+		sb.Write(s.ColumnName)
 
 	default:
-		return "", nil, fmt.Errf("unsupported action: %d", q.Action)
+		return "", nil, fmt.Errf("postgres: unknown DDL op: %v", s.Op)
 	}
 
-	return sb.String(), args, nil
+	return sb.String(), nil, nil
 }
 
-// Translate exposes translate for external testing packages.
-func Translate(q orm.Query, m model.Model) (string, []any, error) {
+// Translate is the public DML export.
+func Translate(q storage.Query, m model.Model) (string, []any, error) {
 	return translate(q, m)
 }
 
-func buildConditions(sb *fmt.Conv, conditions []orm.Condition, args *[]any, argIndex *int) error {
+// TranslateDDL is the new DDL counterpart.
+func TranslateDDL(s ddl.Stmt, m model.Model) (string, []any, error) {
+	return translateDDL(s, m)
+}
+
+func buildConditions(sb *fmt.Conv, conditions []storage.Condition, args *[]any, argIndex *int) error {
 	if len(conditions) == 0 {
 		return nil
 	}
