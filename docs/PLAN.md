@@ -1,9 +1,9 @@
 ---
-PLAN: "refactor!: postgres implementa db.Conn + ddl.Compiler (contrato movido de orm a tinywasm/db)"
+PLAN: "refactor!: postgres implementa storage.Conn + ddl.Compiler (contrato movido de orm a tinywasm/storage)"
 TAG: v0.4.0
 ---
 
-# PLAN — `tinywasm/postgres`: migrar de `orm.Compiler`/`orm.Executor` a `db.Conn` + `ddl.Compiler`
+# PLAN — `tinywasm/postgres`: migrar de `orm.Compiler`/`orm.Executor` a `storage.Conn` + `ddl.Compiler`
 
 Orquestado por
 [`DB_PORT_MASTER_PLAN.md`](https://github.com/tinywasm/app-releases/blob/main/docs/DB_PORT_MASTER_PLAN.md)
@@ -11,22 +11,22 @@ Orquestado por
 
 > **Prerequisito:** `go install github.com/tinywasm/devflow/cmd/gotest@latest`.
 > Tests con `gotest`. Publica con `gopush 'mensaje'`.
-> Este plan **requiere `tinywasm/db@v0.0.1` y `tinywasm/ddl@v0.0.1` ya publicados**. Si no resuelven
+> Este plan **requiere `tinywasm/storage@v0.0.2` y `tinywasm/ddl@v0.0.2` ya publicados**. Si no resuelven
 > en `go get`, para y repórtalo.
 
 ## 0. Qué cambió respecto a la versión anterior de este plan
 
 Antes: `postgres` iba a implementar `orm.Compiler` (DML) + `ddl.Compiler` (DDL), probando
 `orm/conformance`+`ddl/conformance`, y seguía registrándose vía `orm.Register("postgres", New)`. Eso
-asumía que `orm` seguía siendo dueño del contrato. Ya no lo es — se extrajo a `tinywasm/db`. Ahora:
+asumía que `orm` seguía siendo dueño del contrato. Ya no lo es — se extrajo a `tinywasm/storage`. Ahora:
 
-- `PostgresAdapter` implementa **`db.Conn`** (Executor+Compiler unidos) en vez de `orm.Executor`+
+- `PostgresAdapter` implementa **`storage.Conn`** (Executor+Compiler unidos) en vez de `orm.Executor`+
   `orm.Compiler` por separado, y **`ddl.Compiler`** para DDL.
-- **Sin `init()`/`orm.Register`.** `postgres.New(dsn)` pasa a `postgres.Open(dsn) (db.Conn, error)` —
-  construcción explícita, sin registro por string (ver `db/docs/PLAN.md` §2,
-  `DB_PORT_PROPOSAL.md` §6.6).
-- Se prueba contra **`db/conformance`** (no `orm/conformance`) + `ddl/conformance`.
-- `go.mod` final: `db`+`ddl`+`ddlc`+`model`+`fmt`+`lib/pq`. **Cero `tinywasm/orm`.**
+- **Sin `init()`/`orm.Register`.** `postgres.New(dsn)` pasa a `postgres.Open(dsn) (storage.Conn, error)` —
+  construcción explícita, sin registro por string (ver `tinywasm/storage`'s AGENTS.md, sección "No DSN
+  registry", y `DB_PORT_PROPOSAL.md` §6.6).
+- Se prueba contra **`storage/conformance`** (no `orm/conformance`) + `ddl/conformance`.
+- `go.mod` final: `storage`+`ddl`+`ddlc`+`model`+`fmt`+`lib/pq`. **Cero `tinywasm/orm`.**
 
 ## 1. Qué se hace y por qué
 
@@ -34,7 +34,7 @@ asumía que `orm` seguía siendo dueño del contrato. Ya no lo es — se extrajo
 completo en un solo repo**: `PostgresAdapter` abre la conexión, ejecuta, y compila. Entra en **ambos**
 contratos ejecutables porque es un backend SQL completo:
 
-- **`db/conformance`** (DML): el SQL de datos que genera ejecuta y da round-trip correcto.
+- **`storage/conformance`** (DML): el SQL de datos que genera ejecuta y da round-trip correcto.
 - **`ddl/conformance`** (DDL): el DDL que genera crea el esquema correcto.
 
 ## 2. Estado verificado (código actual, antes de este plan)
@@ -42,7 +42,7 @@ contratos ejecutables porque es un backend SQL completo:
 - `adapter.go:11` `init() { orm.Register("postgres", New) }` — **se borra entero**.
 - `adapter.go:33` `New(dataSourceName string) (*orm.DB, error)` → abre `*sql.DB`, construye
   `PostgresAdapter`, devuelve `orm.New(adapter, adapter)` (el mismo `*PostgresAdapter` sirve de
-  executor y compilador — ya está unificado en un tipo, lo cual encaja bien con `db.Conn`).
+  executor y compilador — ya está unificado en un tipo, lo cual encaja bien con `storage.Conn`).
 - `adapter.go:46` `AdapterForTest(db *sql.DB) *PostgresAdapter` — constructor de test que salta
   `sql.Open`, usado por los tests de conformidad. Se queda, cambia lo que implementa (§3.2).
 - `adapter.go:51,63,69,74,79` `PostgresAdapter.Compile/Exec/QueryRow/Query/Close` — implementan
@@ -69,12 +69,12 @@ contratos ejecutables porque es un backend SQL completo:
 ### 3.1 `go.mod`
 
 ```
-go get github.com/tinywasm/db@v0.0.1
+go get github.com/tinywasm/storage@v0.0.1
 go get github.com/tinywasm/ddl@v0.0.1
 go mod tidy   # quita github.com/tinywasm/orm por completo
 ```
 
-### 3.2 `adapter.go` — sin registro, `PostgresAdapter` como `db.Conn` completo
+### 3.2 `adapter.go` — sin registro, `PostgresAdapter` como `storage.Conn` completo
 
 ```go
 package postgres
@@ -82,10 +82,10 @@ package postgres
 import (
 	"database/sql"
 
-	"github.com/tinywasm/db"
 	"github.com/tinywasm/ddl"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/model"
+	"github.com/tinywasm/storage"
 
 	_ "github.com/lib/pq"
 )
@@ -94,11 +94,11 @@ type PostgresAdapter struct {
 	db *sql.DB
 }
 
-// Open creates a new postgres connection and returns it as a db.Conn. No registry, no init() —
+// Open creates a new postgres connection and returns it as a storage.Conn. No registry, no init() —
 // construct explicitly: conn, err := postgres.Open(dsn); d := orm.New(conn) (ergonomic layer)
-// or use conn directly (e.g. ddl.New(conn, conn) — PostgresAdapter implements both db.Compiler
+// or use conn directly (e.g. ddl.New(conn, conn) — PostgresAdapter implements both storage.Compiler
 // and ddl.Compiler, see §3.3).
-func Open(dataSourceName string) (db.Conn, error) {
+func Open(dataSourceName string) (storage.Conn, error) {
 	raw, err := sql.Open("postgres", dataSourceName)
 	if err != nil {
 		return nil, fmt.Errf("failed to open postgres connection: %v", err)
@@ -115,12 +115,12 @@ func AdapterForTest(raw *sql.DB) *PostgresAdapter {
 	return &PostgresAdapter{db: raw}
 }
 
-func (p *PostgresAdapter) Compile(q db.Query, m model.Model) (db.Plan, error) {
+func (p *PostgresAdapter) Compile(q storage.Query, m model.Model) (storage.Plan, error) {
 	sqlStr, args, err := translate(q, m)
 	if err != nil {
-		return db.Plan{}, err
+		return storage.Plan{}, err
 	}
-	return db.Plan{Mode: q.Action, Query: sqlStr, Args: args}, nil
+	return storage.Plan{Mode: q.Action, Query: sqlStr, Args: args}, nil
 }
 
 // CompileDDL implements ddl.Compiler — PostgresAdapter satisfies both compiler contracts in
@@ -134,11 +134,11 @@ func (p *PostgresAdapter) Exec(query string, args ...any) error {
 	return err
 }
 
-func (p *PostgresAdapter) QueryRow(query string, args ...any) db.Scanner {
+func (p *PostgresAdapter) QueryRow(query string, args ...any) storage.Scanner {
 	return &errScanner{s: p.db.QueryRow(query, args...)}
 }
 
-func (p *PostgresAdapter) Query(query string, args ...any) (db.Rows, error) {
+func (p *PostgresAdapter) Query(query string, args ...any) (storage.Rows, error) {
 	return p.db.Query(query, args...)
 }
 
@@ -155,20 +155,20 @@ type errScanner struct{ s *sql.Row }
 func (e errScanner) Scan(dest ...any) error {
 	err := e.s.Scan(dest...)
 	if err == sql.ErrNoRows {
-		return db.ErrNoRows
+		return storage.ErrNoRows
 	}
 	return err
 }
 
 var (
-	_ db.Conn                = (*PostgresAdapter)(nil)
-	_ ddl.Compiler            = (*PostgresAdapter)(nil)
-	_ ddl.TableIntrospector   = (*PostgresAdapter)(nil)
+	_ storage.Conn          = (*PostgresAdapter)(nil)
+	_ ddl.Compiler          = (*PostgresAdapter)(nil)
+	_ ddl.TableIntrospector = (*PostgresAdapter)(nil)
 )
 ```
 
 > `tableColumns(q interface{ Query(string, ...any) (orm.Rows, error) }, table string)` en
-> `adapter.go:83` solo cambia el tipo de retorno de la interfaz anónima: `(db.Rows, error)`.
+> `adapter.go:83` solo cambia el tipo de retorno de la interfaz anónima: `(storage.Rows, error)`.
 
 ### 3.3 `translate.go` — separar DML de DDL, mismo patrón que `sqlt`
 
@@ -176,24 +176,24 @@ var (
 package postgres
 
 import (
-	"github.com/tinywasm/db"
 	"github.com/tinywasm/ddl"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/model"
+	"github.com/tinywasm/storage"
 )
 
-// translate converts a db.Query (DML only) into Postgres SQL. Body unchanged from today's
+// translate converts a storage.Query (DML only) into Postgres SQL. Body unchanged from today's
 // switch, minus the DDL cases (moved to translateDDL below) — same shape as
 // sqlt/docs/PLAN.md §3.3, adjust $1/$2 placeholder numbering exactly as it works today.
-func translate(q db.Query, m model.Model) (string, []any, error) {
+func translate(q storage.Query, m model.Model) (string, []any, error) {
 	switch q.Action {
-	case db.ActionCreate:
+	case storage.ActionCreate:
 		// ... cuerpo sin cambios de translate.go actual, case orm.ActionCreate ...
-	case db.ActionReadOne, db.ActionReadAll:
+	case storage.ActionReadOne, storage.ActionReadAll:
 		// ... cuerpo sin cambios ...
-	case db.ActionUpdate:
+	case storage.ActionUpdate:
 		// ... cuerpo sin cambios ...
-	case db.ActionDelete:
+	case storage.ActionDelete:
 		// ... cuerpo sin cambios ...
 	default:
 		return "", nil, fmt.Errf("postgres: unknown DML action: %v", q.Action)
@@ -222,7 +222,7 @@ func translateDDL(s ddl.Stmt, m model.Model) (string, []any, error) {
 }
 
 // Translate is the public DML export (translate_test.go compares against it).
-func Translate(q db.Query, m model.Model) (string, []any, error) {
+func Translate(q storage.Query, m model.Model) (string, []any, error) {
 	return translate(q, m)
 }
 
@@ -231,7 +231,7 @@ func TranslateDDL(s ddl.Stmt, m model.Model) (string, []any, error) {
 	return translateDDL(s, m)
 }
 
-func buildConditions(sb *fmt.Conv, conditions []db.Condition, args *[]any, argIndex *int) error {
+func buildConditions(sb *fmt.Conv, conditions []storage.Condition, args *[]any, argIndex *int) error {
 	// ... cuerpo sin cambios, solo el tipo del parámetro conditions ...
 }
 ```
@@ -278,12 +278,12 @@ Mismo cambio mecánico que `sqlite/docs/PLAN.md` §2.5: `columns(q querier, tabl
 
 ### 3.6 `tx.go` — `PostgresTx`, el equivalente transaccional
 
-Mismo tratamiento que `PostgresAdapter`: `Compile`→`db.Query`/`db.Plan`, añade `CompileDDL` (delega a
-`translateDDL`, igual que §3.2), `Exec`/`QueryRow`/`Query` re-tipados a `db.Scanner`/`db.Rows`,
+Mismo tratamiento que `PostgresAdapter`: `Compile`→`storage.Query`/`storage.Plan`, añade `CompileDDL` (delega a
+`translateDDL`, igual que §3.2), `Exec`/`QueryRow`/`Query` re-tipados a `storage.Scanner`/`storage.Rows`,
 `TableColumns`/`Tables`/`Columns` re-tipados a `ddl.TableIntrospector`/`ddl.SchemaInspector`.
-`PostgresAdapter.BeginTx() (orm.TxBoundExecutor, error)` (`tx.go:79`) → `(db.TxBoundExecutor, error)`.
+`PostgresAdapter.BeginTx() (orm.TxBoundExecutor, error)` (`tx.go:79`) → `(storage.TxBoundExecutor, error)`.
 
-### 3.7 `tests/conformance_test.go` (`package tests`) — ambas suites, sobre `db`/`ddl`
+### 3.7 `tests/conformance_test.go` (`package tests`) — ambas suites, sobre `storage`/`ddl`
 
 ```go
 package tests
@@ -293,12 +293,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/tinywasm/db"
-	dbconf "github.com/tinywasm/db/conformance"
 	"github.com/tinywasm/ddl"
 	ddlconf "github.com/tinywasm/ddl/conformance"
 	"github.com/tinywasm/model"
 	"github.com/tinywasm/postgres"
+	"github.com/tinywasm/storage"
+	dbconf "github.com/tinywasm/storage/conformance"
 )
 
 func dsnOrSkip(t *testing.T) string {
@@ -314,12 +314,12 @@ func dsnOrSkip(t *testing.T) string {
 	return dsn
 }
 
-// DML: schema via Compiler.ExportDDL (DROP+CREATE for isolation), then db data ops.
+// DML: schema via Compiler.ExportDDL (DROP+CREATE for isolation), then storage data ops.
 func TestPostgres_DBConformance(t *testing.T) {
 	dsn := dsnOrSkip(t)
 	dbconf.Run(t, dbconf.Factory{
 		Name: "postgres",
-		New: func(t *testing.T, models ...model.Model) db.Conn {
+		New: func(t *testing.T, models ...model.Model) storage.Conn {
 			raw, err := sql.Open("postgres", dsn)
 			if err != nil {
 				t.Fatalf("sql.Open: %v", err)
@@ -345,14 +345,14 @@ func TestPostgres_DDLConformance(t *testing.T) {
 	dsn := dsnOrSkip(t)
 	ddlconf.Run(t, ddlconf.Factory{
 		Name: "postgres",
-		New: func(t *testing.T) (schema *ddl.DB, conn db.Conn, cols func(string) []string) {
+		New: func(t *testing.T) (schema *ddl.DB, conn storage.Conn, cols func(string) []string) {
 			raw, err := sql.Open("postgres", dsn)
 			if err != nil {
 				t.Fatalf("sql.Open: %v", err)
 			}
 			_, _ = raw.Exec("DROP TABLE IF EXISTS conformance_widget")
 			adapter := postgres.AdapterForTest(raw)
-			schema = ddl.New(adapter, adapter) // PostgresAdapter is both db.Conn and ddl.Compiler
+			schema = ddl.New(adapter, adapter) // PostgresAdapter is both storage.Conn and ddl.Compiler
 			cols = func(table string) []string { /* information_schema.columns → names */ return nil }
 			return schema, adapter, cols
 		},
@@ -362,31 +362,31 @@ func TestPostgres_DDLConformance(t *testing.T) {
 
 > Ajusta `cols` a `SELECT column_name FROM information_schema.columns WHERE table_name=$1 ORDER BY
 > ordinal_position`. `ddl.New(adapter, adapter)` funciona porque `*PostgresAdapter` implementa **tanto**
-> `db.Conn` como `ddl.Compiler` en el mismo valor (§3.2) — no necesitas el segundo tipo `Compiler`
+> `storage.Conn` como `ddl.Compiler` en el mismo valor (§3.2) — no necesitas el segundo tipo `Compiler`
 > (§3.4) para este test, aunque `Compiler` sigue existiendo para `ExportDDL`.
 
 ## 4. Si alguna suite se pone en rojo → corregir `translate.go`/`adapter.go`
 
-Nunca la suite. Puntos: placeholders `$1,$2` bien numerados, `sql.ErrNoRows`→`db.ErrNoRows` en el
+Nunca la suite. Puntos: placeholders `$1,$2` bien numerados, `sql.ErrNoRows`→`storage.ErrNoRows` en el
 scanner, DDL de tipos Postgres válidos, `IN ($1,$2)`, booleanos, `ALTER TABLE ADD COLUMN`,
 `buildDropColumn`/rama `OpDropColumn` leyendo `s.ColumnName` (no un slice) tras el cambio de §3.3.
 
 ## 5. Criterios de aceptación
 
-- `*PostgresAdapter` implementa `db.Conn` **y** `ddl.Compiler` **y** `ddl.TableIntrospector` **y**
+- `*PostgresAdapter` implementa `storage.Conn` **y** `ddl.Compiler` **y** `ddl.TableIntrospector` **y**
   `ddl.SchemaInspector` (`var _` de los cuatro). **Cero** `github.com/tinywasm/orm`
   (`grep -rn "tinywasm/orm" .` vacío).
-- `postgres.Open(dsn) (db.Conn, error)` — sin `init()`, sin registro.
+- `postgres.Open(dsn) (storage.Conn, error)` — sin `init()`, sin registro.
 - Con `POSTGRES_DSN` alcanzable: `TestPostgres_DBConformance` y `TestPostgres_DDLConformance` verdes.
 - Sin `POSTGRES_DSN`: ambos **saltan** limpio.
-- `go.mod` en `db@v0.0.1`+, `ddl@v0.0.1`+; `go mod tidy` limpio; publicado con `gopush`.
+- `go.mod` en `storage@v0.0.1`+, `ddl@v0.0.1`+; `go mod tidy` limpio; publicado con `gopush`.
 
 ## 6. Etapas
 
 | # | Etapa | Archivo(s) | Criterio |
 |---|---|---|---|
-| 1 | Bump deps, quitar orm | `go.mod` | `db`/`ddl` añadidos; `orm` fuera |
-| 2 | `Open` sin registro, `db.Conn`+`ddl.Compiler` | `adapter.go` | `var _ db.Conn`, `var _ ddl.Compiler` (§3.2) |
+| 1 | Bump deps, quitar orm | `go.mod` | `storage`/`ddl` añadidos; `orm` fuera |
+| 2 | `Open` sin registro, `storage.Conn`+`ddl.Compiler` | `adapter.go` | `var _ storage.Conn`, `var _ ddl.Compiler` (§3.2) |
 | 3 | Switch DML/DDL separados | `translate.go` | `translate`/`translateDDL` (§3.3) |
 | 4 | `Compiler` (ExportDDL) | `compiler.go` | `CompileDDL` en vez de `Compile` (§3.4) |
 | 5 | Introspección | `introspect.go` | `ddl.ColumnInfo`/`ddl.SchemaInspector` (§3.5) |
@@ -394,7 +394,7 @@ scanner, DDL de tipos Postgres válidos, `IN ($1,$2)`, booleanos, `ALTER TABLE A
 | 7 | Test DML | `tests/conformance_test.go` | `dbconf.Run` + skip (§3.7) |
 | 8 | Test DDL | `tests/conformance_test.go` | `ddlconf.Run` + skip (§3.7) |
 | 9 | Correcciones (si aplica) | `translate.go`/`adapter.go` | suites verdes contra Postgres real |
-| 10 | Publicar | — | `gotest` verde; `gopush 'refactor!: db+ddl conformance'` |
+| 10 | Publicar | — | `gotest` verde; `gopush 'refactor!: storage+ddl conformance'` |
 
 ## 7. Cierre
 
