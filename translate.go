@@ -1,11 +1,38 @@
 package postgres
 
 import (
+	"strings"
+
 	"github.com/tinywasm/ddl"
 	"github.com/tinywasm/fmt"
 	"github.com/tinywasm/model"
 	"github.com/tinywasm/storage"
 )
+
+// quoteIdent double-quotes a Postgres identifier so a table or column named
+// after a reserved word (user, order, group, ...) survives as a literal
+// identifier instead of being parsed as the keyword — an unquoted `user`
+// table produced "syntax error at or near "user"" here. Embedded double
+// quotes are doubled, per the SQL standard; a dotted name is quoted part by
+// part rather than as one literal, in case a caller ever passes a qualified
+// reference.
+func quoteIdent(name string) string {
+	if name == "" || name == "*" {
+		return name
+	}
+	if i := strings.IndexByte(name, '.'); i >= 0 {
+		return quoteIdent(name[:i]) + "." + quoteIdent(name[i+1:])
+	}
+	return `"` + strings.ReplaceAll(name, `"`, `""`) + `"`
+}
+
+func quoteIdentList(names []string) []string {
+	out := make([]string, len(names))
+	for i, n := range names {
+		out[i] = quoteIdent(n)
+	}
+	return out
+}
 
 func postgresType(t model.FieldType) string {
 	switch t {
@@ -51,9 +78,9 @@ func translate(q storage.Query, m model.Model) (string, []any, error) {
 	switch q.Action {
 	case storage.ActionCreate:
 		sb.Write("INSERT INTO ")
-		sb.Write(q.Table)
+		sb.Write(quoteIdent(q.Table))
 		sb.Write(" (")
-		sb.Write(fmt.Convert(q.Columns).Join(", ").String())
+		sb.Write(fmt.Convert(quoteIdentList(q.Columns)).Join(", ").String())
 		sb.Write(") VALUES (")
 		for i, v := range q.Values {
 			if i > 0 {
@@ -70,10 +97,10 @@ func translate(q storage.Query, m model.Model) (string, []any, error) {
 		if len(q.Columns) == 0 {
 			sb.Write("*")
 		} else {
-			sb.Write(fmt.Convert(q.Columns).Join(", ").String())
+			sb.Write(fmt.Convert(quoteIdentList(q.Columns)).Join(", ").String())
 		}
 		sb.Write(" FROM ")
-		sb.Write(q.Table)
+		sb.Write(quoteIdent(q.Table))
 		if err := buildConditions(sb, q.Conditions, &args, &argIndex); err != nil {
 			return "", nil, err
 		}
@@ -83,7 +110,7 @@ func translate(q storage.Query, m model.Model) (string, []any, error) {
 				if i > 0 {
 					sb.Write(", ")
 				}
-				sb.Write(o.Column())
+				sb.Write(quoteIdent(o.Column()))
 				sb.Write(" ")
 				sb.Write(o.Dir())
 			}
@@ -97,7 +124,7 @@ func translate(q storage.Query, m model.Model) (string, []any, error) {
 
 	case storage.ActionUpdate:
 		sb.Write("UPDATE ")
-		sb.Write(q.Table)
+		sb.Write(quoteIdent(q.Table))
 		sb.Write(" SET ")
 
 		isPKCol := make(map[string]bool)
@@ -117,7 +144,7 @@ func translate(q storage.Query, m model.Model) (string, []any, error) {
 			if added > 0 {
 				sb.Write(", ")
 			}
-			sb.Write(c)
+			sb.Write(quoteIdent(c))
 			sb.Write(fmt.Sprintf(" = $%d", argIndex))
 			args = append(args, q.Values[i])
 			argIndex++
@@ -130,7 +157,7 @@ func translate(q storage.Query, m model.Model) (string, []any, error) {
 				if i > 0 {
 					sb.Write(", ")
 				}
-				sb.Write(c)
+				sb.Write(quoteIdent(c))
 				sb.Write(fmt.Sprintf(" = $%d", argIndex))
 				args = append(args, q.Values[i])
 				argIndex++
@@ -143,7 +170,7 @@ func translate(q storage.Query, m model.Model) (string, []any, error) {
 
 	case storage.ActionDelete:
 		sb.Write("DELETE FROM ")
-		sb.Write(q.Table)
+		sb.Write(quoteIdent(q.Table))
 		if err := buildConditions(sb, q.Conditions, &args, &argIndex); err != nil {
 			return "", nil, err
 		}
@@ -162,7 +189,7 @@ func translateDDL(s ddl.Stmt, m model.Model) (string, []any, error) {
 	switch s.Op {
 	case ddl.OpCreateTable:
 		sb.Write("CREATE TABLE IF NOT EXISTS ")
-		sb.Write(s.Table)
+		sb.Write(quoteIdent(s.Table))
 		sb.Write(" (")
 		fields := m.Schema()
 
@@ -178,7 +205,7 @@ func translateDDL(s ddl.Stmt, m model.Model) (string, []any, error) {
 			if i > 0 {
 				sb.Write(", ")
 			}
-			sb.Write(f.Name)
+			sb.Write(quoteIdent(f.Name))
 			sb.Write(" ")
 			isPK := f.IsPK()
 			isAuto := f.IsAutoInc()
@@ -210,7 +237,7 @@ func translateDDL(s ddl.Stmt, m model.Model) (string, []any, error) {
 			}
 		}
 		if compositePK {
-			sb.Write(fmt.Sprintf(", PRIMARY KEY (%s)", fmt.Convert(pkCols).Join(", ").String()))
+			sb.Write(fmt.Sprintf(", PRIMARY KEY (%s)", fmt.Convert(quoteIdentList(pkCols)).Join(", ").String()))
 		}
 		if ext, ok := m.(interface{ SchemaExt() []model.FieldExt }); ok {
 			for _, f := range ext.SchemaExt() {
@@ -219,8 +246,8 @@ func translateDDL(s ddl.Stmt, m model.Model) (string, []any, error) {
 					if refCol == "" {
 						refCol = "id"
 					}
-					sb.Write(fmt.Sprintf(", CONSTRAINT fk_%s_%s FOREIGN KEY (%s) REFERENCES %s(%s) ON DELETE %s",
-						s.Table, f.Name, f.Name, f.Ref, refCol, onDeleteSQL(f.OnDelete)))
+					sb.Write(fmt.Sprintf(", CONSTRAINT %s FOREIGN KEY (%s) REFERENCES %s(%s) ON DELETE %s",
+						quoteIdent(fmt.Sprintf("fk_%s_%s", s.Table, f.Name)), quoteIdent(f.Name), quoteIdent(f.Ref), quoteIdent(refCol), onDeleteSQL(f.OnDelete)))
 				}
 			}
 		}
@@ -228,16 +255,16 @@ func translateDDL(s ddl.Stmt, m model.Model) (string, []any, error) {
 
 	case ddl.OpDropTable:
 		sb.Write("DROP TABLE IF EXISTS ")
-		sb.Write(s.Table)
+		sb.Write(quoteIdent(s.Table))
 
 	case ddl.OpAddColumn:
 		if s.Column == nil || s.Table == "" {
 			return "", nil, fmt.Err("table and column required for add column")
 		}
 		sb.Write("ALTER TABLE ")
-		sb.Write(s.Table)
+		sb.Write(quoteIdent(s.Table))
 		sb.Write(" ADD COLUMN IF NOT EXISTS ")
-		sb.Write(s.Column.Name)
+		sb.Write(quoteIdent(s.Column.Name))
 		sb.Write(" ")
 		sb.Write(postgresType(s.Column.Type.Storage()))
 
@@ -246,20 +273,20 @@ func translateDDL(s ddl.Stmt, m model.Model) (string, []any, error) {
 			return "", nil, fmt.Err("table, old name and column required for rename")
 		}
 		sb.Write("ALTER TABLE ")
-		sb.Write(s.Table)
+		sb.Write(quoteIdent(s.Table))
 		sb.Write(" RENAME COLUMN ")
-		sb.Write(s.OldName)
+		sb.Write(quoteIdent(s.OldName))
 		sb.Write(" TO ")
-		sb.Write(s.Column.Name)
+		sb.Write(quoteIdent(s.Column.Name))
 
 	case ddl.OpDropColumn:
 		if s.Table == "" || s.ColumnName == "" {
 			return "", nil, fmt.Err("table and column name required for drop column")
 		}
 		sb.Write("ALTER TABLE ")
-		sb.Write(s.Table)
+		sb.Write(quoteIdent(s.Table))
 		sb.Write(" DROP COLUMN IF EXISTS ")
-		sb.Write(s.ColumnName)
+		sb.Write(quoteIdent(s.ColumnName))
 
 	default:
 		return "", nil, fmt.Errf("postgres: unknown DDL op: %v", s.Op)
@@ -295,7 +322,7 @@ func buildConditions(sb *fmt.Conv, conditions []storage.Condition, args *[]any, 
 
 		op := c.Operator()
 		if op == "IS NULL" || op == "IS NOT NULL" {
-			sb.Write(c.Field())
+			sb.Write(quoteIdent(c.Field()))
 			sb.Write(" ")
 			sb.Write(op)
 			continue
@@ -309,7 +336,7 @@ func buildConditions(sb *fmt.Conv, conditions []storage.Condition, args *[]any, 
 			if len(slice) == 0 {
 				return fmt.Err("IN operator slice cannot be empty")
 			}
-			sb.Write(c.Field())
+			sb.Write(quoteIdent(c.Field()))
 			sb.Write(" IN (")
 			for j, val := range slice {
 				if j > 0 {
@@ -321,7 +348,7 @@ func buildConditions(sb *fmt.Conv, conditions []storage.Condition, args *[]any, 
 			}
 			sb.Write(")")
 		} else {
-			sb.Write(c.Field())
+			sb.Write(quoteIdent(c.Field()))
 			sb.Write(" ")
 			sb.Write(c.Operator())
 			sb.Write(" ")

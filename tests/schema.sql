@@ -36,17 +36,22 @@
 --               role_id int64 `db:"pk,ref=roles"`
 --
 -- Order guaranteed by TopologicalSort: users -> roles -> sessions -> user_roles
+--
+-- Every identifier is double-quoted: table/column names are user-controlled
+-- (via model.Field.Name / model.Model.ModelName) and Postgres has reserved
+-- words — "user" itself among them — that break as bare identifiers. See
+-- quoteIdent in translate.go.
 
-CREATE TABLE IF NOT EXISTS users (id BIGSERIAL PRIMARY KEY, username VARCHAR(50) NOT NULL UNIQUE, email TEXT NOT NULL UNIQUE, score DOUBLE PRECISION, active BOOLEAN, avatar BYTEA);
+CREATE TABLE IF NOT EXISTS "users" ("id" BIGSERIAL PRIMARY KEY, "username" VARCHAR(50) NOT NULL UNIQUE, "email" TEXT NOT NULL UNIQUE, "score" DOUBLE PRECISION, "active" BOOLEAN, "avatar" BYTEA);
 
-CREATE TABLE IF NOT EXISTS roles (id BIGSERIAL PRIMARY KEY, name VARCHAR(100) NOT NULL UNIQUE);
+CREATE TABLE IF NOT EXISTS "roles" ("id" BIGSERIAL PRIMARY KEY, "name" VARCHAR(100) NOT NULL UNIQUE);
 
-CREATE TABLE IF NOT EXISTS sessions (id TEXT PRIMARY KEY, user_id BIGINT, metadata TEXT, CONSTRAINT fk_sessions_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS "sessions" ("id" TEXT PRIMARY KEY, "user_id" BIGINT, "metadata" TEXT, CONSTRAINT "fk_sessions_user_id" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE);
 
-CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX IF NOT EXISTS "idx_sessions_user_id" ON "sessions"("user_id");
 
-CREATE TABLE IF NOT EXISTS user_roles (user_id BIGINT NOT NULL, role_id BIGINT NOT NULL, PRIMARY KEY (user_id, role_id), CONSTRAINT fk_user_roles_user_id FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE, CONSTRAINT fk_user_roles_role_id FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE);
+CREATE TABLE IF NOT EXISTS "user_roles" ("user_id" BIGINT NOT NULL, "role_id" BIGINT NOT NULL, PRIMARY KEY ("user_id", "role_id"), CONSTRAINT "fk_user_roles_user_id" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE, CONSTRAINT "fk_user_roles_role_id" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE CASCADE);
 
-CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON user_roles(user_id);
+CREATE INDEX IF NOT EXISTS "idx_user_roles_user_id" ON "user_roles"("user_id");
 
-CREATE INDEX IF NOT EXISTS idx_user_roles_role_id ON user_roles(role_id);
+CREATE INDEX IF NOT EXISTS "idx_user_roles_role_id" ON "user_roles"("role_id");

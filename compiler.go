@@ -46,8 +46,8 @@ func (c *Compiler) ExportDDL(models []model.Model) (string, error) {
 			for _, f := range ext.SchemaExt() {
 				if f.Ref != "" {
 					buf.Write(fmt.Sprintf(
-						"CREATE INDEX IF NOT EXISTS idx_%s_%s ON %s(%s);\n\n",
-						m.ModelName(), f.Name, m.ModelName(), f.Name))
+						"CREATE INDEX IF NOT EXISTS %s ON %s(%s);\n\n",
+						quoteIdent(fmt.Sprintf("idx_%s_%s", m.ModelName(), f.Name)), quoteIdent(m.ModelName()), quoteIdent(f.Name)))
 				}
 			}
 		}

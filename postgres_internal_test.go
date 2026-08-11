@@ -20,10 +20,10 @@ func (m *mockInternalModel) Schema() []model.Field {
 		{Name: "name", Type: model.Text(), NotNull: true},
 	}
 }
-func (m *mockInternalModel) Pointers() []any                       { return nil }
-func (m *mockInternalModel) EncodeFields(w model.FieldWriter)      {}
-func (m *mockInternalModel) DecodeFields(r model.FieldReader)      {}
-func (m *mockInternalModel) IsNil() bool                           { return m == nil }
+func (m *mockInternalModel) Pointers() []any                  { return nil }
+func (m *mockInternalModel) EncodeFields(w model.FieldWriter) {}
+func (m *mockInternalModel) DecodeFields(r model.FieldReader) {}
+func (m *mockInternalModel) IsNil() bool                      { return m == nil }
 
 type compositePKModel struct{}
 
@@ -34,10 +34,10 @@ func (m *compositePKModel) Schema() []model.Field {
 		{Name: "id2", Type: model.Int(), DB: &model.FieldDB{PK: true}},
 	}
 }
-func (m *compositePKModel) Pointers() []any                       { return nil }
-func (m *compositePKModel) EncodeFields(w model.FieldWriter)      {}
-func (m *compositePKModel) DecodeFields(r model.FieldReader)      {}
-func (m *compositePKModel) IsNil() bool                           { return m == nil }
+func (m *compositePKModel) Pointers() []any                  { return nil }
+func (m *compositePKModel) EncodeFields(w model.FieldWriter) {}
+func (m *compositePKModel) DecodeFields(r model.FieldReader) {}
+func (m *compositePKModel) IsNil() bool                      { return m == nil }
 
 type cyclicModelA struct{}
 
@@ -48,10 +48,10 @@ func (m *cyclicModelA) Schema() []model.Field {
 func (m *cyclicModelA) SchemaExt() []model.FieldExt {
 	return []model.FieldExt{{Field: model.Field{Name: "b_id"}, Ref: "cyclic_b"}}
 }
-func (m *cyclicModelA) Pointers() []any                       { return nil }
-func (m *cyclicModelA) EncodeFields(w model.FieldWriter)      {}
-func (m *cyclicModelA) DecodeFields(r model.FieldReader)      {}
-func (m *cyclicModelA) IsNil() bool                           { return m == nil }
+func (m *cyclicModelA) Pointers() []any                  { return nil }
+func (m *cyclicModelA) EncodeFields(w model.FieldWriter) {}
+func (m *cyclicModelA) DecodeFields(r model.FieldReader) {}
+func (m *cyclicModelA) IsNil() bool                      { return m == nil }
 
 type cyclicModelB struct{}
 
@@ -62,10 +62,10 @@ func (m *cyclicModelB) Schema() []model.Field {
 func (m *cyclicModelB) SchemaExt() []model.FieldExt {
 	return []model.FieldExt{{Field: model.Field{Name: "a_id"}, Ref: "cyclic_a"}}
 }
-func (m *cyclicModelB) Pointers() []any                       { return nil }
-func (m *cyclicModelB) EncodeFields(w model.FieldWriter)      {}
-func (m *cyclicModelB) DecodeFields(r model.FieldReader)      {}
-func (m *cyclicModelB) IsNil() bool                           { return m == nil }
+func (m *cyclicModelB) Pointers() []any                  { return nil }
+func (m *cyclicModelB) EncodeFields(w model.FieldWriter) {}
+func (m *cyclicModelB) DecodeFields(r model.FieldReader) {}
+func (m *cyclicModelB) IsNil() bool                      { return m == nil }
 
 type autoIncNonPKModel struct{}
 
@@ -77,10 +77,10 @@ func (m *autoIncNonPKModel) Schema() []model.Field {
 		{Name: "uid", Type: model.Text(), DB: &model.FieldDB{Unique: true}},
 	}
 }
-func (m *autoIncNonPKModel) Pointers() []any                       { return nil }
-func (m *autoIncNonPKModel) EncodeFields(w model.FieldWriter)      {}
-func (m *autoIncNonPKModel) DecodeFields(r model.FieldReader)      {}
-func (m *autoIncNonPKModel) IsNil() bool                           { return m == nil }
+func (m *autoIncNonPKModel) Pointers() []any                  { return nil }
+func (m *autoIncNonPKModel) EncodeFields(w model.FieldWriter) {}
+func (m *autoIncNonPKModel) DecodeFields(r model.FieldReader) {}
+func (m *autoIncNonPKModel) IsNil() bool                      { return m == nil }
 
 type allTypesModel struct{}
 
@@ -93,10 +93,101 @@ func (m *allTypesModel) Schema() []model.Field {
 		{Name: "f_blob", Type: model.Blob()},
 	}
 }
-func (m *allTypesModel) Pointers() []any                       { return nil }
-func (m *allTypesModel) EncodeFields(w model.FieldWriter)      {}
-func (m *allTypesModel) DecodeFields(r model.FieldReader)      {}
-func (m *allTypesModel) IsNil() bool                           { return m == nil }
+func (m *allTypesModel) Pointers() []any                  { return nil }
+func (m *allTypesModel) EncodeFields(w model.FieldWriter) {}
+func (m *allTypesModel) DecodeFields(r model.FieldReader) {}
+func (m *allTypesModel) IsNil() bool                      { return m == nil }
+
+// reservedWordModel mirrors tinywasm/user's real UserModel: a table literally
+// named "user" — a Postgres reserved keyword. This is the exact shape that
+// produced "pq: syntax error at or near "user" at column 28" before
+// quoteIdent existed.
+type reservedWordModel struct{}
+
+func (m *reservedWordModel) ModelName() string { return "user" }
+func (m *reservedWordModel) Schema() []model.Field {
+	return []model.Field{
+		{Name: "id", Type: model.Text(), DB: &model.FieldDB{PK: true}},
+		{Name: "order", Type: model.Text()}, // also reserved — column position, not just table
+	}
+}
+func (m *reservedWordModel) Pointers() []any                  { return nil }
+func (m *reservedWordModel) EncodeFields(w model.FieldWriter) {}
+func (m *reservedWordModel) DecodeFields(r model.FieldReader) {}
+func (m *reservedWordModel) IsNil() bool                      { return m == nil }
+
+func TestQuoteIdent(t *testing.T) {
+	cases := []struct{ in, want string }{
+		{"", ""},
+		{"*", "*"},
+		{"user", `"user"`},
+		{"id", `"id"`},
+		{`we"ird`, `"we""ird"`},
+		{"t.col", `"t"."col"`},
+	}
+	for _, c := range cases {
+		if got := quoteIdent(c.in); got != c.want {
+			t.Errorf("quoteIdent(%q) = %q, want %q", c.in, got, c.want)
+		}
+	}
+}
+
+// TestTranslateDDL_ReservedWordTable is the regression net for the "user"
+// syntax error: every identifier translateDDL writes for a reserved-word
+// table/column must come out quoted, never bare.
+func TestTranslateDDL_ReservedWordTable(t *testing.T) {
+	query, _, err := translateDDL(ddl.Stmt{Op: ddl.OpCreateTable, Table: "user"}, &reservedWordModel{})
+	if err != nil {
+		t.Fatalf("translateDDL failed: %v", err)
+	}
+	want := `CREATE TABLE IF NOT EXISTS "user" ("id" TEXT PRIMARY KEY, "order" TEXT)`
+	if query != want {
+		t.Errorf("got:\n%s\nwant:\n%s", query, want)
+	}
+
+	dropQuery, _, err := translateDDL(ddl.Stmt{Op: ddl.OpDropTable, Table: "user"}, &reservedWordModel{})
+	if err != nil {
+		t.Fatalf("translateDDL drop failed: %v", err)
+	}
+	if dropQuery != `DROP TABLE IF EXISTS "user"` {
+		t.Errorf("got %q", dropQuery)
+	}
+}
+
+// TestTranslate_ReservedWordTable covers the DML side (INSERT/SELECT/UPDATE/
+// DELETE, plus WHERE/ORDER BY) against the same "user" table and an "order"
+// column, so every identifier-writing branch in translate/buildConditions is
+// exercised at least once.
+func TestTranslate_ReservedWordTable(t *testing.T) {
+	insert, _, err := translate(storage.Query{
+		Action: storage.ActionCreate, Table: "user", Columns: []string{"order"}, Values: []any{"x"},
+	}, &reservedWordModel{})
+	if err != nil || insert != `INSERT INTO "user" ("order") VALUES ($1)` {
+		t.Errorf("insert: got %q, err %v", insert, err)
+	}
+
+	sel, _, err := translate(storage.Query{
+		Action: storage.ActionReadAll, Table: "user", Columns: []string{"order"},
+		Conditions: []storage.Condition{storage.Eq("order", "x")},
+		OrderBy:    []storage.Order{storage.Asc("order")},
+	}, &reservedWordModel{})
+	want := `SELECT "order" FROM "user" WHERE "order" = $1 ORDER BY "order" ASC`
+	if err != nil || sel != want {
+		t.Errorf("select: got %q, want %q, err %v", sel, want, err)
+	}
+
+	upd, _, err := translate(storage.Query{
+		Action: storage.ActionUpdate, Table: "user", Columns: []string{"order"}, Values: []any{"y"},
+	}, &reservedWordModel{})
+	if err != nil || upd != `UPDATE "user" SET "order" = $1` {
+		t.Errorf("update: got %q, err %v", upd, err)
+	}
+
+	del, _, err := translate(storage.Query{Action: storage.ActionDelete, Table: "user"}, &reservedWordModel{})
+	if err != nil || del != `DELETE FROM "user"` {
+		t.Errorf("delete: got %q, err %v", del, err)
+	}
+}
 
 type errorQuerier struct{}
 
