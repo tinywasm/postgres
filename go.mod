@@ -9,6 +9,6 @@ require (
 )
 
 require (
-	github.com/tinywasm/ddl v0.0.4
+	github.com/tinywasm/ddl v0.0.12
 	github.com/tinywasm/storage v0.0.2
 )
