@@ -10,5 +10,5 @@ require (
 
 require (
 	github.com/tinywasm/ddl v0.0.12
-	github.com/tinywasm/storage v0.0.2
+	github.com/tinywasm/storage v0.0.6
 )
