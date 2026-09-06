@@ -1,14 +1,14 @@
-module github.com/tinywasm/postgres
+module webtyp.com/postgres
 
 go 1.25.2
 
 require (
 	github.com/lib/pq v1.12.3
-	github.com/tinywasm/fmt v0.25.7
-	github.com/tinywasm/model v0.1.7
+	webtyp.com/fmt v0.25.7
+	webtyp.com/model v0.1.7
 )
 
 require (
-	github.com/tinywasm/ddl v0.0.12
-	github.com/tinywasm/storage v0.0.6
+	webtyp.com/ddl v0.0.12
+	webtyp.com/storage v0.0.6
 )

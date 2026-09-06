@@ -1,9 +1,9 @@
 package postgres
 
 import (
-	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/fmt"
-	"github.com/tinywasm/model"
+	"webtyp.com/ddl"
+	"webtyp.com/fmt"
+	"webtyp.com/model"
 )
 
 // Compiler implements ddl.Compiler and exposes ExportDDL for PostgreSQL DDL generation tooling.

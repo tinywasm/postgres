@@ -4,10 +4,10 @@ import (
 	"database/sql"
 
 	_ "github.com/lib/pq"
-	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/fmt"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/storage"
+	"webtyp.com/ddl"
+	"webtyp.com/fmt"
+	"webtyp.com/model"
+	"webtyp.com/storage"
 )
 
 // PostgresAdapter implements storage.Conn and ddl.Compiler for PostgreSQL.

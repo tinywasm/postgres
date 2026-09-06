@@ -1,8 +1,8 @@
 package postgres
 
 import (
-	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/storage"
+	"webtyp.com/ddl"
+	"webtyp.com/storage"
 )
 
 type querier interface {

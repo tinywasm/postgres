@@ -3,10 +3,10 @@ package postgres
 import (
 	"strings"
 
-	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/fmt"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/storage"
+	"webtyp.com/ddl"
+	"webtyp.com/fmt"
+	"webtyp.com/model"
+	"webtyp.com/storage"
 )
 
 // quoteIdent double-quotes a Postgres identifier so a table or column named

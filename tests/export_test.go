@@ -2,14 +2,14 @@
 
 package tests
 
-import "github.com/tinywasm/model"
+import "webtyp.com/model"
 
 import (
 	"os"
 	"strings"
 	"testing"
 
-	"github.com/tinywasm/postgres"
+	"webtyp.com/postgres"
 )
 
 type userModel struct{}

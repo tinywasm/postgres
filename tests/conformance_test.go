@@ -5,12 +5,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/tinywasm/ddl"
-	ddlconf "github.com/tinywasm/ddl/conformance"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/postgres"
-	"github.com/tinywasm/storage"
-	dbconf "github.com/tinywasm/storage/conformance"
+	"webtyp.com/ddl"
+	ddlconf "webtyp.com/ddl/conformance"
+	"webtyp.com/model"
+	"webtyp.com/postgres"
+	"webtyp.com/storage"
+	dbconf "webtyp.com/storage/conformance"
 )
 
 func dsnOrSkip(t *testing.T) string {
@@ -52,7 +52,7 @@ func TestPostgres_DBConformance(t *testing.T) {
 	})
 }
 
-// DDL: drive tinywasm/ddl runtime with postgres's ddl.Compiler (PostgresAdapter itself).
+// DDL: drive webtyp/ddl runtime with postgres's ddl.Compiler (PostgresAdapter itself).
 func TestPostgres_DDLConformance(t *testing.T) {
 	dsn := dsnOrSkip(t)
 	ddlconf.Run(t, ddlconf.Factory{

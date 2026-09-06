@@ -1,7 +1,7 @@
-# PostgreSQL Adapter for tinywasm/storage + ddl
+# PostgreSQL Adapter for webtyp/storage + ddl
 <img src="docs/img/badges.svg">
 
-This repository implements the `storage.Conn` (from `github.com/tinywasm/storage`) and `ddl.Compiler` (from `github.com/tinywasm/ddl`) interfaces for PostgreSQL.
+This repository implements the `storage.Conn` (from `webtyp.com/storage`) and `ddl.Compiler` (from `webtyp.com/ddl`) interfaces for PostgreSQL.
 
 ## Usage
 
@@ -13,7 +13,7 @@ package main
 import (
 	"log"
 
-	"github.com/tinywasm/postgres"
+	"webtyp.com/postgres"
 )
 
 func main() {

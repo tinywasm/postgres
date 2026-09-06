@@ -4,9 +4,9 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/storage"
+	"webtyp.com/ddl"
+	"webtyp.com/model"
+	"webtyp.com/storage"
 )
 
 // PostgresTx wraps a SQL transaction.

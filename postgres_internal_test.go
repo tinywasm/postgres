@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/tinywasm/ddl"
-	"github.com/tinywasm/fmt"
-	"github.com/tinywasm/model"
-	"github.com/tinywasm/storage"
+	"webtyp.com/ddl"
+	"webtyp.com/fmt"
+	"webtyp.com/model"
+	"webtyp.com/storage"
 )
 
 type mockInternalModel struct{}
@@ -98,7 +98,7 @@ func (m *allTypesModel) EncodeFields(w model.FieldWriter) {}
 func (m *allTypesModel) DecodeFields(r model.FieldReader) {}
 func (m *allTypesModel) IsNil() bool                      { return m == nil }
 
-// reservedWordModel mirrors tinywasm/user's real UserModel: a table literally
+// reservedWordModel mirrors webtyp/user's real UserModel: a table literally
 // named "user" — a Postgres reserved keyword. This is the exact shape that
 // produced "pq: syntax error at or near "user" at column 28" before
 // quoteIdent existed.
